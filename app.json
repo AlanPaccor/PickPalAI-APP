@@ -2,10 +2,10 @@
   "expo": {
     "name": "sports-bet",
     "slug": "sports-bet",
+    "scheme": "Mentality",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
