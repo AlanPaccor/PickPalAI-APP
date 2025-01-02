@@ -1,109 +1,234 @@
-import { StyleSheet, Image, Platform } from 'react-native';
+import { StyleSheet, Platform, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
+import { Game } from '@/types/sports';
+import { Category } from '@/types/categories';
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import ParallaxScrollView from '@/components/ParallaxScrollView';
 
-export default function TabTwoScreen() {
+export default function ExploreScreen() {
+  const [liveGames, setLiveGames] = useState<Game[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const API_KEY = '34023186e3b9a7b42f66c91853d0d297';
+
+  useEffect(() => {
+    fetchGames();
+  }, []);
+
+  const fetchGames = async () => {
+    try {
+      setIsLoading(true);
+      // Get all in-play games
+      const response = await fetch(
+        `https://api.the-odds-api.com/v4/sports/upcoming/odds/?apiKey=${API_KEY}&regions=us&markets=h2h&oddsFormat=decimal&dateFormat=iso`
+      );
+      const data = await response.json();
+      
+      // Transform the data to match our Game interface
+      const transformedGames: Game[] = data.map((game: any) => ({
+        id: game.id,
+        sport_key: game.sport_key,
+        sport_title: game.sport_title,
+        commence_time: game.commence_time,
+        home_team: game.home_team,
+        away_team: game.away_team,
+        status: {
+          long: new Date(game.commence_time) > new Date() ? 'Upcoming' : 'In Progress',
+          short: new Date(game.commence_time) > new Date() ? 'UP' : 'LIVE'
+        }
+      }));
+
+      setLiveGames(transformedGames);
+    } catch (error) {
+      console.error('Error fetching games:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const categories: Category[] = [
+    {
+      title: 'Popular Sports',
+      items: ['NBA', 'NFL', 'MLB', 'Soccer'],
+      icon: 'basketball',
+      color: '#2196F3'
+    },
+    {
+      title: 'Trending Bets',
+      items: ['Player Props', 'Over/Under', 'Moneyline'],
+      icon: 'trending-up',
+      color: '#FF9800'
+    },
+    {
+      title: 'AI Insights',
+      items: ['Match Analysis', 'Player Stats', 'Historical Data'],
+      icon: 'robot',
+      color: '#4CAF50'
+    }
+  ];
+
+  const renderLiveGames = () => (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.liveGamesScroll}>
+      {liveGames.map((game) => (
+        <TouchableOpacity key={game.id} style={styles.liveGameCard}>
+          <ThemedView style={styles.liveGameContent}>
+            <ThemedText type="defaultSemiBold">{game.sport_title}</ThemedText>
+            <ThemedView style={styles.teamsContainer}>
+              <ThemedView style={styles.teamInfo}>
+                <ThemedText>{game.home_team}</ThemedText>
+                {game.scores && (
+                  <ThemedText type="defaultSemiBold">{game.scores.home}</ThemedText>
+                )}
+              </ThemedView>
+              <ThemedText>vs</ThemedText>
+              <ThemedView style={styles.teamInfo}>
+                <ThemedText>{game.away_team}</ThemedText>
+                {game.scores && (
+                  <ThemedText type="defaultSemiBold">{game.scores.away}</ThemedText>
+                )}
+              </ThemedView>
+            </ThemedView>
+            <ThemedText style={[
+              styles.gameStatus,
+              { color: game.status?.short === 'LIVE' ? '#E53935' : '#4CAF50' }
+            ]}>
+              {game.status?.long}
+            </ThemedText>
+            <ThemedText style={styles.gameTime}>
+              {new Date(game.commence_time).toLocaleTimeString()}
+            </ThemedText>
+          </ThemedView>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
+      headerBackgroundColor={{ light: '#1A5F7A', dark: '#1D3D47' }}
       headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
+        <MaterialCommunityIcons 
+          name="compass" 
+          size={120} 
+          color="#ffffff50" 
+          style={styles.headerIcon} 
         />
       }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
+      <ThemedView style={styles.container}>
+        <ThemedView style={styles.liveGamesSection}>
+          <ThemedView style={styles.categoryHeader}>
+            <MaterialCommunityIcons name="clock-outline" size={24} color="#E53935" />
+            <ThemedText type="subtitle">Live & Upcoming Games</ThemedText>
+          </ThemedView>
+          
+          {isLoading ? (
+            <ThemedText>Loading games...</ThemedText>
+          ) : (
+            renderLiveGames()
+          )}
+        </ThemedView>
+
+        {categories.map((category, index) => (
+          <ThemedView key={index} style={styles.categoryContainer}>
+            <ThemedView style={styles.categoryHeader}>
+              <MaterialCommunityIcons name={category.icon} size={24} color={category.color} />
+              <ThemedText type="subtitle">{category.title}</ThemedText>
+            </ThemedView>
+            
+            <ThemedView style={styles.itemsGrid}>
+              {category.items.map((item, itemIndex) => (
+                <TouchableOpacity key={itemIndex} style={styles.gridItem}>
+                  <ThemedView style={styles.gridItemContent}>
+                    <ThemedText type="defaultSemiBold">{item}</ThemedText>
+                  </ThemedView>
+                </TouchableOpacity>
+              ))}
+            </ThemedView>
+          </ThemedView>
+        ))}
       </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user's current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
     </ParallaxScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    gap: 24,
   },
-  titleContainer: {
+  headerIcon: {
+    position: 'absolute',
+    right: -20,
+    bottom: -20,
+  },
+  categoryContainer: {
+    gap: 16,
+  },
+  categoryHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  itemsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  gridItem: {
+    width: '47%',
+  },
+  gridItemContent: {
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: Platform.select({ 
+      ios: '#00000010', 
+      android: '#00000010', 
+      web: '#00000010' 
+    }),
+    alignItems: 'center',
+  },
+  liveGamesSection: {
+    marginBottom: 24,
+  },
+  liveGamesScroll: {
+    marginTop: 16,
+  },
+  liveGameCard: {
+    width: 300,
+    marginRight: 16,
+  },
+  liveGameContent: {
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: Platform.select({ 
+      ios: '#00000010', 
+      android: '#00000010', 
+      web: '#00000010' 
+    }),
+  },
+  teamsContainer: {
+    marginVertical: 12,
+    alignItems: 'center',
     gap: 8,
+  },
+  teamInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  teamLogo: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  gameStatus: {
+    color: '#E53935',
+    fontSize: 12,
+  },
+  gameTime: {
+    fontSize: 12,
+    marginTop: 4,
+    opacity: 0.7
   },
 });
