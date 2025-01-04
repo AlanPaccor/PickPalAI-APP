@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "127408998098",
+    "project_id": "oddsly-df955",
+    "storage_bucket": "oddsly-df955.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:127408998098:android:ce02dc715f0f46ed180f0b",
+        "android_client_info": {
+          "package_name": "com.Oddsly.appname"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAL5RCNEAUDVhO57SbQT_K8VI08AnXH6Uk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
