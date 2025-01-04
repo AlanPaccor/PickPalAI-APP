@@ -2,10 +2,16 @@ import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { View, StyleSheet, Pressable } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { useAuth } from '../context/AuthContext';
+import { Redirect } from 'expo-router';
 
-const AnimatedView = Animated.createAnimatedComponent(View);
+// Add type for the AssistantIcon props
+interface AssistantIconProps {
+  color: string;
+  focused: boolean;
+}
 
-function AssistantIcon({ color, focused }: { color: string, focused: boolean }) {
+function AssistantIcon({ color, focused }: AssistantIconProps) {
   const animatedStyles = useAnimatedStyle(() => {
     return {
       backgroundColor: withTiming(focused ? '#1E90FF' : '#151718', {
@@ -40,9 +46,29 @@ function AssistantIcon({ color, focused }: { color: string, focused: boolean }) 
   );
 }
 
+// Add type for the tabBarButton props
+interface TabBarButtonProps {
+  children: React.ReactNode;
+  onPress?: () => void;
+  [key: string]: any;
+}
+
 export default function TabLayout() {
+  const { user, loading } = useAuth();
+
+  // Show loading screen while checking authentication
+  if (loading) {
+    return null;
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    return <Redirect href="/auth/login" />;
+  }
+
   return (
     <Tabs screenOptions={{
+      headerShown: false,
       tabBarActiveTintColor: '#1E90FF',
       tabBarInactiveTintColor: '#8E8E93',
       tabBarStyle: {
@@ -50,7 +76,7 @@ export default function TabLayout() {
         height: 60,
         paddingBottom: 5,
       },
-      tabBarButton: (props) => (
+      tabBarButton: (props: TabBarButtonProps) => (
         <Pressable {...props} android_ripple={{ color: 'transparent' }} />
       ),
     }}>
