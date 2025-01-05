@@ -1,10 +1,11 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, useColorScheme } from 'react-native';
 import { useState, useCallback } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
+import Colors from '@/constants/Colors';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -12,6 +13,8 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
 
   const handleLogin = async () => {
     if (loading) return;
@@ -43,7 +46,10 @@ export default function Login() {
 
   return (
     <Animated.View 
-      style={styles.container}
+      style={[
+        styles.container,
+        { backgroundColor: theme.background }
+      ]}
       entering={FadeIn.duration(500)}
     >
       <Text style={styles.title}>
@@ -80,7 +86,11 @@ export default function Login() {
         </TouchableOpacity>
       </View>
       <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]} 
+        style={[
+          styles.button, 
+          { backgroundColor: theme.tint },
+          loading && styles.buttonDisabled
+        ]} 
         onPress={handleLogin}
         disabled={loading}
       >
@@ -92,7 +102,10 @@ export default function Login() {
       </TouchableOpacity>
       <TouchableOpacity onPress={navigateToRegister}>
         <Animated.Text 
-          style={styles.link}
+          style={[
+            styles.link,
+            { color: theme.tint }
+          ]}
           entering={FadeIn.delay(400)}
         >
           Don't have an account? Register
@@ -107,7 +120,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: 'center',
-    backgroundColor: 'white',
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
   },
   title: {
@@ -123,7 +135,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   button: {
-    backgroundColor: '#007AFF',
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
@@ -138,7 +149,6 @@ const styles = StyleSheet.create({
   },
   link: {
     marginTop: 15,
-    color: '#007AFF',
     textAlign: 'center',
   },
   buttonDisabled: {

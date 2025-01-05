@@ -1,29 +1,34 @@
 import { Stack } from 'expo-router';
 import { AuthProvider } from './context/AuthContext';
+import { useColorScheme, StatusBar } from 'react-native';
+import Colors from '@/constants/Colors';
+import { View } from 'react-native';
 
 export default function RootLayout() {
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
+
   return (
-    <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen
-          name="welcome"
-          options={{
+    <View style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
+      />
+      <AuthProvider>
+        <Stack 
+          screenOptions={{
             headerShown: false,
+            contentStyle: {
+              backgroundColor: '#0A0A0A',
+            },
+            animation: 'fade',
           }}
-        />
-        <Stack.Screen
-          name="auth"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="(tabs)"
-          options={{
-            headerShown: false,
-          }}
-        />
-      </Stack>
-    </AuthProvider>
+        >
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="auth" />
+        </Stack>
+      </AuthProvider>
+    </View>
   );
 }
