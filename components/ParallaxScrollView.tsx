@@ -1,17 +1,16 @@
 import type { PropsWithChildren, ReactElement } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, useColorScheme, StatusBar, Platform, SafeAreaView } from 'react-native';
 import Animated, {
   interpolate,
   useAnimatedRef,
   useAnimatedStyle,
   useScrollViewOffset,
 } from 'react-native-reanimated';
-
+import Colors from '@/constants/Colors';
 import { ThemedView } from '@/components/ThemedView';
-import { useBottomTabOverflow } from '@/components/ui/TabBarBackground';
-import { useColorScheme } from '@/hooks/useColorScheme';
 
 const HEADER_HEIGHT = 250;
+const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 47 : StatusBar.currentHeight || 0;
 
 type Props = PropsWithChildren<{
   headerImage: ReactElement;
@@ -23,10 +22,11 @@ export default function ParallaxScrollView({
   headerImage,
   headerBackgroundColor,
 }: Props) {
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollOffset = useScrollViewOffset(scrollRef);
-  const bottom = useBottomTabOverflow();
+
   const headerAnimatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
@@ -46,15 +46,25 @@ export default function ParallaxScrollView({
 
   return (
     <ThemedView style={styles.container}>
+      <StatusBar 
+        barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} 
+        backgroundColor="transparent"
+        translucent
+      />
       <Animated.ScrollView
         ref={scrollRef}
         scrollEventThrottle={16}
-        scrollIndicatorInsets={{ bottom }}
-        contentContainerStyle={{ paddingBottom: bottom }}>
+        style={{ 
+          flex: 1,
+          backgroundColor: theme.background,
+        }}
+        contentContainerStyle={{ paddingBottom: 20 }}
+        showsVerticalScrollIndicator={false}
+      >
         <Animated.View
           style={[
             styles.header,
-            { backgroundColor: headerBackgroundColor[colorScheme] },
+            { backgroundColor: headerBackgroundColor[colorScheme ?? 'light'] },
             headerAnimatedStyle,
           ]}>
           {headerImage}
@@ -68,10 +78,12 @@ export default function ParallaxScrollView({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#151718',
   },
   header: {
-    height: HEADER_HEIGHT,
+    height: HEADER_HEIGHT + STATUSBAR_HEIGHT,
     overflow: 'hidden',
+    marginTop: -STATUSBAR_HEIGHT,
   },
   content: {
     flex: 1,

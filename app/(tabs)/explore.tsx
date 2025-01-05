@@ -1,234 +1,328 @@
-import { StyleSheet, Platform, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { StyleSheet, Platform, TouchableOpacity, ScrollView, FlatList, StatusBar, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Game } from '@/types/sports';
-import { Category } from '@/types/categories';
-
+import Colors from '@/constants/Colors';
+import { useColorScheme } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
+
+const SPORTS = [
+  { id: 'nfl', name: 'NFL', icon: 'football', color: '#6B3FA0' },
+  { id: 'nba', name: 'NBA', icon: 'basketball', color: '#C9082A' },
+  { id: 'nhl', name: 'NHL', icon: 'hockey-puck', color: '#004687' },
+  { id: 'nfl4q', name: 'NFL4Q', icon: 'football-helmet', color: '#17B169' },
+  { id: 'cfb', name: 'CFB', icon: 'football-helmet', color: '#FF6B00' },
+  { id: 'nba4q', name: 'NBA4Q', icon: 'basketball-hoop', color: '#1E90FF' },
+];
+
+const FILTERS = [
+  { id: 'popular', label: 'Popular 🔥' },
+  { id: 'passing', label: 'Passing Yards' },
+  { id: 'receiving', label: 'Receiving Yards' },
+  { id: 'rushing', label: 'Rushing Yards' },
+];
 
 export default function ExploreScreen() {
-  const [liveGames, setLiveGames] = useState<Game[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const API_KEY = '34023186e3b9a7b42f66c91853d0d297';
+  const [selectedSport, setSelectedSport] = useState('nfl');
+  const [selectedFilter, setSelectedFilter] = useState('popular');
+  const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
 
-  useEffect(() => {
-    fetchGames();
-  }, []);
-
-  const fetchGames = async () => {
+  const loadGames = useCallback(async () => {
+    if (loading) return;
+    setLoading(true);
     try {
-      setIsLoading(true);
-      // Get all in-play games
-      const response = await fetch(
-        `https://api.the-odds-api.com/v4/sports/upcoming/odds/?apiKey=${API_KEY}&regions=us&markets=h2h&oddsFormat=decimal&dateFormat=iso`
-      );
-      const data = await response.json();
-      
-      // Transform the data to match our Game interface
-      const transformedGames: Game[] = data.map((game: any) => ({
-        id: game.id,
-        sport_key: game.sport_key,
-        sport_title: game.sport_title,
-        commence_time: game.commence_time,
-        home_team: game.home_team,
-        away_team: game.away_team,
-        status: {
-          long: new Date(game.commence_time) > new Date() ? 'Upcoming' : 'In Progress',
-          short: new Date(game.commence_time) > new Date() ? 'UP' : 'LIVE'
-        }
-      }));
-
-      setLiveGames(transformedGames);
+      // Simulated data - replace with your API
+      const newGames = [
+        {
+          id: `${page}-1`,
+          player: 'Baker Mayfield',
+          position: 'TB - QB',
+          team: 'TB',
+          opponent: 'NO',
+          prediction: '255.5',
+          stat: 'Pass Yards',
+          popularity: '248.1K',
+          time: '1:00pm',
+          jersey: '#6',
+          jerseyColor: '#FF0000',
+        },
+        {
+          id: `${page}-2`,
+          player: 'Courtland Sutton',
+          position: 'DEN - WR',
+          team: 'DEN',
+          opponent: 'KC',
+          prediction: '80.5',
+          stat: 'Receiving Yards',
+          popularity: '141.5K',
+          time: '4:25pm',
+          jersey: '#14',
+          jerseyColor: '#002244',
+        },
+        // Add more games as needed
+      ];
+      setGames(prev => [...prev, ...newGames]);
+      setPage(prev => prev + 1);
     } catch (error) {
-      console.error('Error fetching games:', error);
+      console.error('Error loading games:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
+  }, [page, loading]);
 
-  const categories: Category[] = [
-    {
-      title: 'Popular Sports',
-      items: ['NBA', 'NFL', 'MLB', 'Soccer'],
-      icon: 'basketball',
-      color: '#2196F3'
-    },
-    {
-      title: 'Trending Bets',
-      items: ['Player Props', 'Over/Under', 'Moneyline'],
-      icon: 'trending-up',
-      color: '#FF9800'
-    },
-    {
-      title: 'AI Insights',
-      items: ['Match Analysis', 'Player Stats', 'Historical Data'],
-      icon: 'robot',
-      color: '#4CAF50'
-    }
-  ];
-
-  const renderLiveGames = () => (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.liveGamesScroll}>
-      {liveGames.map((game) => (
-        <TouchableOpacity key={game.id} style={styles.liveGameCard}>
-          <ThemedView style={styles.liveGameContent}>
-            <ThemedText type="defaultSemiBold">{game.sport_title}</ThemedText>
-            <ThemedView style={styles.teamsContainer}>
-              <ThemedView style={styles.teamInfo}>
-                <ThemedText>{game.home_team}</ThemedText>
-                {game.scores && (
-                  <ThemedText type="defaultSemiBold">{game.scores.home}</ThemedText>
-                )}
-              </ThemedView>
-              <ThemedText>vs</ThemedText>
-              <ThemedView style={styles.teamInfo}>
-                <ThemedText>{game.away_team}</ThemedText>
-                {game.scores && (
-                  <ThemedText type="defaultSemiBold">{game.scores.away}</ThemedText>
-                )}
-              </ThemedView>
-            </ThemedView>
-            <ThemedText style={[
-              styles.gameStatus,
-              { color: game.status?.short === 'LIVE' ? '#E53935' : '#4CAF50' }
-            ]}>
-              {game.status?.long}
-            </ThemedText>
-            <ThemedText style={styles.gameTime}>
-              {new Date(game.commence_time).toLocaleTimeString()}
-            </ThemedText>
+  const renderGameCard = ({ item }: any) => (
+    <TouchableOpacity style={styles.gameCard}>
+      <ThemedView style={styles.gameCardInner}>
+        <ThemedView style={styles.statsColumn}>
+          <MaterialCommunityIcons name="chart-line-variant" size={16} color={theme.tint} />
+        </ThemedView>
+        
+        <ThemedView style={styles.jerseyContainer}>
+          <ThemedView style={[styles.jersey, { backgroundColor: item.jerseyColor }]}>
+            <ThemedText style={styles.jerseyNumber}>{item.jersey}</ThemedText>
           </ThemedView>
+        </ThemedView>
+
+        <ThemedView style={styles.mainContent}>
+          <ThemedView style={styles.playerInfo}>
+            <ThemedText style={styles.position}>{item.position}</ThemedText>
+            <ThemedText style={styles.playerName}>{item.player}</ThemedText>
+            <ThemedText style={styles.matchup}>vs {item.opponent} {item.time}</ThemedText>
+          </ThemedView>
+
+          <ThemedView style={styles.predictionInfo}>
+            <ThemedText style={styles.statValue}>{item.prediction}</ThemedText>
+            <ThemedText style={styles.statLabel}>{item.stat}</ThemedText>
+          </ThemedView>
+        </ThemedView>
+
+        <ThemedView style={styles.popularityContainer}>
+          <MaterialCommunityIcons name="fire" size={16} color="#FF9800" />
+          <ThemedText style={styles.popularityText}>{item.popularity}</ThemedText>
+        </ThemedView>
+      </ThemedView>
+
+      <ThemedView style={styles.actionButtons}>
+        <TouchableOpacity style={styles.actionButton}>
+          <ThemedText style={styles.actionButtonText}>Less</ThemedText>
         </TouchableOpacity>
-      ))}
-    </ScrollView>
+        <TouchableOpacity style={[styles.actionButton, styles.actionButtonHighlight]}>
+          <ThemedText style={styles.actionButtonText}>More</ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+    </TouchableOpacity>
   );
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#1A5F7A', dark: '#1D3D47' }}
-      headerImage={
-        <MaterialCommunityIcons 
-          name="compass" 
-          size={120} 
-          color="#ffffff50" 
-          style={styles.headerIcon} 
-        />
-      }>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.liveGamesSection}>
-          <ThemedView style={styles.categoryHeader}>
-            <MaterialCommunityIcons name="clock-outline" size={24} color="#E53935" />
-            <ThemedText type="subtitle">Live & Upcoming Games</ThemedText>
-          </ThemedView>
-          
-          {isLoading ? (
-            <ThemedText>Loading games...</ThemedText>
-          ) : (
-            renderLiveGames()
-          )}
-        </ThemedView>
-
-        {categories.map((category, index) => (
-          <ThemedView key={index} style={styles.categoryContainer}>
-            <ThemedView style={styles.categoryHeader}>
-              <MaterialCommunityIcons name={category.icon} size={24} color={category.color} />
-              <ThemedText type="subtitle">{category.title}</ThemedText>
-            </ThemedView>
-            
-            <ThemedView style={styles.itemsGrid}>
-              {category.items.map((item, itemIndex) => (
-                <TouchableOpacity key={itemIndex} style={styles.gridItem}>
-                  <ThemedView style={styles.gridItemContent}>
-                    <ThemedText type="defaultSemiBold">{item}</ThemedText>
-                  </ThemedView>
-                </TouchableOpacity>
-              ))}
-            </ThemedView>
-          </ThemedView>
+    <ThemedView style={styles.container}>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.sportsScroll}
+      >
+        {SPORTS.map(sport => (
+          <TouchableOpacity
+            key={sport.id}
+            style={[
+              styles.sportTab,
+              selectedSport === sport.id && styles.sportTabSelected,
+              { backgroundColor: selectedSport === sport.id ? sport.color : '#1E1E1E' }
+            ]}
+            onPress={() => setSelectedSport(sport.id)}
+          >
+            <MaterialCommunityIcons 
+              name={sport.icon} 
+              size={24} 
+              color="white"
+            />
+            <ThemedText style={styles.sportText}>
+              {sport.name}
+            </ThemedText>
+          </TouchableOpacity>
         ))}
-      </ThemedView>
-    </ParallaxScrollView>
+      </ScrollView>
+
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.filtersScroll}
+      >
+        {FILTERS.map(filter => (
+          <TouchableOpacity
+            key={filter.id}
+            style={[
+              styles.filterTab,
+              selectedFilter === filter.id && styles.filterTabSelected,
+            ]}
+            onPress={() => setSelectedFilter(filter.id)}
+          >
+            <ThemedText style={[
+              styles.filterText,
+              selectedFilter === filter.id && styles.filterTextSelected,
+            ]}>
+              {filter.label}
+            </ThemedText>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <FlatList
+        data={games}
+        renderItem={renderGameCard}
+        keyExtractor={item => item.id}
+        onEndReached={loadGames}
+        onEndReachedThreshold={0.5}
+        contentContainerStyle={styles.gamesList}
+      />
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: 24,
+    flex: 1,
+    backgroundColor: '#0A0A0A',
   },
-  headerIcon: {
-    position: 'absolute',
-    right: -20,
-    bottom: -20,
+  sportsScroll: {
+    paddingHorizontal: 12,
+    marginTop: Platform.OS === 'ios' ? 47 : StatusBar.currentHeight || 0,
   },
-  categoryContainer: {
-    gap: 16,
-  },
-  categoryHeader: {
+  sportTab: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  itemsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  gridItem: {
-    width: '47%',
-  },
-  gridItemContent: {
-    padding: 16,
+    padding: 12,
+    marginRight: 8,
     borderRadius: 12,
-    backgroundColor: Platform.select({ 
-      ios: '#00000010', 
-      android: '#00000010', 
-      web: '#00000010' 
-    }),
-    alignItems: 'center',
+    minWidth: 90,
   },
-  liveGamesSection: {
-    marginBottom: 24,
+  sportTabSelected: {
+    borderWidth: 1,
+    borderColor: '#FFFFFF30',
   },
-  liveGamesScroll: {
-    marginTop: 16,
+  sportText: {
+    color: 'white',
+    marginLeft: 8,
+    fontSize: 13,
+    fontWeight: '600',
   },
-  liveGameCard: {
-    width: 300,
-    marginRight: 16,
-  },
-  liveGameContent: {
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: Platform.select({ 
-      ios: '#00000010', 
-      android: '#00000010', 
-      web: '#00000010' 
-    }),
-  },
-  teamsContainer: {
+  filtersScroll: {
+    paddingHorizontal: 12,
     marginVertical: 12,
-    alignItems: 'center',
-    gap: 8,
   },
-  teamInfo: {
+  filterTab: {
+    padding: 8,
+    paddingHorizontal: 16,
+    marginRight: 8,
+    borderRadius: 20,
+    backgroundColor: '#1E1E1E',
+    borderWidth: 1,
+    borderColor: '#FFFFFF10',
+  },
+  filterTabSelected: {
+    backgroundColor: '#FFFFFF15',
+    borderColor: '#FFFFFF30',
+  },
+  filterText: {
+    color: '#FFFFFF80',
+    fontSize: 14,
+  },
+  filterTextSelected: {
+    color: 'white',
+  },
+  gamesList: {
+    padding: 12,
+  },
+  gameCard: {
+    marginBottom: 16,
+    backgroundColor: '#151515',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  gameCardInner: {
+    flexDirection: 'row',
+    padding: 12,
+    alignItems: 'center',
+  },
+  statsColumn: {
+    marginRight: 12,
+  },
+  jerseyContainer: {
+    marginRight: 12,
+  },
+  jersey: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  jerseyNumber: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  mainContent: {
+    flex: 1,
+  },
+  playerInfo: {
+    gap: 2,
+  },
+  position: {
+    color: '#FFFFFF80',
+    fontSize: 12,
+  },
+  playerName: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  matchup: {
+    color: '#FFFFFF80',
+    fontSize: 12,
+  },
+  predictionInfo: {
+    marginTop: 4,
+  },
+  statValue: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  statLabel: {
+    color: '#FFFFFF80',
+    fontSize: 12,
+  },
+  popularityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
   },
-  teamLogo: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-  },
-  gameStatus: {
-    color: '#E53935',
+  popularityText: {
+    color: '#FFFFFF80',
     fontSize: 12,
   },
-  gameTime: {
-    fontSize: 12,
-    marginTop: 4,
-    opacity: 0.7
+  actionButtons: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#FFFFFF10',
+  },
+  actionButton: {
+    flex: 1,
+    padding: 12,
+    alignItems: 'center',
+    backgroundColor: '#1E1E1E',
+  },
+  actionButtonHighlight: {
+    backgroundColor: '#252525',
+  },
+  actionButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
