@@ -7,6 +7,18 @@ import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from 'react-native';
 import Colors from '@/constants/Colors';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
+import { MaterialCommunityIconName } from '@/types/icons';
+
+interface MenuItem {
+  icon: MaterialCommunityIconName;
+  label: string;
+  onPress: () => void;
+}
+
+interface MenuSection {
+  title: string;
+  items: MenuItem[];
+}
 
 export default function AccountScreen() {
   const colorScheme = useColorScheme();
@@ -21,11 +33,11 @@ export default function AccountScreen() {
     }
   };
 
-  const menuItems = [
+  const menuItems: MenuSection[] = [
     {
       title: 'Account Settings',
       items: [
-        { icon: 'account-edit', label: 'Edit Profile', onPress: () => {} },
+        { icon: 'account-edit-outline', label: 'Edit Profile', onPress: () => {} },
         { icon: 'bell-outline', label: 'Notifications', onPress: () => {} },
         { icon: 'shield-lock-outline', label: 'Privacy & Security', onPress: () => {} },
       ]
