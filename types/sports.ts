@@ -1,18 +1,20 @@
 export interface Game {
   id: string;
-  sport_key: string;
-  sport_title: string;
-  commence_time: string;
-  home_team: string;
-  away_team: string;
-  scores?: {
-    home: number;
-    away: number;
-  };
-  status?: {
-    long: string;
-    short: string;
-  };
+  player: string;
+  position: string;
+  team: string;
+  opponent: string;
+  prediction: string;
+  stat: string;
+  popularity: string;
+  time: string;
+  jersey: string;
+  jerseyColor: string;
+  sport_key?: string;
+  sport_title?: string;
+  commence_time?: string;
+  home_team?: string;
+  away_team?: string;
 }
 
 export interface Sport {
