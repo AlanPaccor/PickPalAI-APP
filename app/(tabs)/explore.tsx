@@ -33,10 +33,20 @@ const SPORTS: Array<{
 ];
 
 const FILTERS = [
-  { id: 'popular', label: 'Popular 🔥' },
-  { id: 'passing', label: 'Passing Yards' },
-  { id: 'receiving', label: 'Receiving Yards' },
-  { id: 'rushing', label: 'Rushing Yards' },
+  { id: 'popular', label: 'Popular 🔥', type: 'popularity' },
+  { id: 'trending', label: 'Trending 📈', type: 'trending' },
+  { id: 'value', label: 'Best Value 💎', type: 'value' },
+  // Sport-specific filters
+  { id: 'passing', label: 'Passing Yards 🏈', type: 'stat', sports: ['nfl', 'nfl4q', 'cfb'] },
+  { id: 'receiving', label: 'Receiving Yards 🏃', type: 'stat', sports: ['nfl', 'nfl4q', 'cfb'] },
+  { id: 'rushing', label: 'Rushing Yards 🏃', type: 'stat', sports: ['nfl', 'nfl4q', 'cfb'] },
+  { id: 'points', label: 'Points 🏀', type: 'stat', sports: ['nba', 'nba4q'] },
+  { id: 'rebounds', label: 'Rebounds 🏀', type: 'stat', sports: ['nba', 'nba4q'] },
+  { id: 'assists', label: 'Assists 🏀', type: 'stat', sports: ['nba', 'nba4q'] },
+  { id: 'goals', label: 'Goals ⚽', type: 'stat', sports: ['soccer'] },
+  { id: 'shots', label: 'Shots on Goal 🥅', type: 'stat', sports: ['nhl', 'soccer'] },
+  { id: 'hits', label: 'Hits ⚾', type: 'stat', sports: ['mlb'] },
+  { id: 'strikeouts', label: 'Strikeouts ⚾', type: 'stat', sports: ['mlb'] },
 ];
 
 type OddsGame = {
@@ -210,6 +220,11 @@ export default function ExploreScreen() {
         // Generate a truly unique ID using timestamp and random number
         const uniqueId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${page}-${index}`;
         
+        // Generate random metrics for filtering
+        const odds = Math.random() * 2 + 0.5; // odds between 0.5 and 2.5
+        const trend = Math.random() * 100; // trending score 0-100
+        const value = Math.random() * 100; // value score 0-100
+        
         return {
           id: uniqueId,
           player: playerInfo.name,
@@ -222,22 +237,60 @@ export default function ExploreScreen() {
           time: `${hour}:${minute.toString().padStart(2, '0')} ${ampm}`,
           sport: playerInfo.sport,
           jersey: Math.floor(Math.random() * 99).toString(),
-          jerseyColor: '#' + Math.floor(Math.random()*16777215).toString(16)
+          jerseyColor: '#' + Math.floor(Math.random()*16777215).toString(16),
+          odds,
+          trend,
+          value,
+          popularity,
         };
+      });
+
+      // Filter games based on selected filter
+      const filteredGames = mockGames.filter(game => {
+        switch (selectedFilter) {
+          case 'popular':
+            return game.odds && game.odds > 1.8; // Games with better odds are marked as popular
+          case 'trending':
+            return game.trend && game.trend > 70; // Games with high trending score
+          case 'value':
+            return game.value && game.value > 80; // Games with high value score
+          case 'passing':
+            return game.stat?.toLowerCase().includes('pass');
+          case 'receiving':
+            return game.stat?.toLowerCase().includes('rec');
+          case 'rushing':
+            return game.stat?.toLowerCase().includes('rush');
+          case 'points':
+            return game.stat?.toLowerCase().includes('points');
+          case 'rebounds':
+            return game.stat?.toLowerCase().includes('rebounds');
+          case 'assists':
+            return game.stat?.toLowerCase().includes('assists');
+          case 'goals':
+            return game.stat?.toLowerCase().includes('goals');
+          case 'shots':
+            return game.stat?.toLowerCase().includes('shots');
+          case 'hits':
+            return game.stat?.toLowerCase().includes('hits');
+          case 'strikeouts':
+            return game.stat?.toLowerCase().includes('strikeouts');
+          default:
+            return true;
+        }
       });
 
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const newGameIds = new Set([...loadedGameIds, ...mockGames.map(game => game.id)]);
+      const newGameIds = new Set([...loadedGameIds, ...filteredGames.map(game => game.id)]);
       setLoadedGameIds(newGameIds);
       
       setGames(prev => {
-        const newGames = [...prev, ...mockGames];
+        const newGames = [...prev, ...filteredGames];
         console.log('total games after update:', newGames.length);
         return newGames;
       });
       
-      setAllGames(prev => [...prev, ...mockGames]);
+      setAllGames(prev => [...prev, ...filteredGames]);
       
       setPage(prev => prev + 1);
       if (!isInitialLoadDone) setIsInitialLoadDone(true);
@@ -247,7 +300,7 @@ export default function ExploreScreen() {
     } finally {
       setLoading(false);
     }
-  }, [page, loading, loadedGameIds, selectedSport, isInitialLoadDone, refreshing]);
+  }, [page, loading, loadedGameIds, selectedSport, selectedFilter, isInitialLoadDone, refreshing]);
 
   useEffect(() => {
     setGames([]);
@@ -392,6 +445,13 @@ export default function ExploreScreen() {
     setSelectedGame(null);
   };
 
+  const getRelevantFilters = useCallback(() => {
+    return FILTERS.filter(filter => 
+      !filter.sports || // Show filters that don't have sport restrictions
+      filter.sports.includes(selectedSport) // Show filters specific to the selected sport
+    );
+  }, [selectedSport]);
+
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.fixedHeader}>
@@ -422,7 +482,7 @@ export default function ExploreScreen() {
         />
         <FlatList
           horizontal
-          data={FILTERS}
+          data={getRelevantFilters()}
           showsHorizontalScrollIndicator={false}
           style={styles.filtersScroll}
           renderItem={({item: filter}) => (
