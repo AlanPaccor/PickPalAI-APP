@@ -95,9 +95,9 @@ export default function TabLayout() {
         <Tabs.Screen
           name="assistant"
           options={{
-            title: 'Assistant',
-            tabBarIcon: ({ color }) => (
-              <MaterialIcons name="chat" size={24} color={color} />
+            title: '',
+            tabBarIcon: ({ color, focused }) => (
+              <AssistantIcon color={color} focused={focused} />
             ),
           }}
         />
