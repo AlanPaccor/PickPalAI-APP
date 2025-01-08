@@ -1,6 +1,7 @@
-import { StyleSheet, Platform, TouchableOpacity, ScrollView, FlatList, StatusBar, Image, ActivityIndicator, TextInput, View } from 'react-native';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { StyleSheet, Platform, TouchableOpacity, ScrollView, FlatList, StatusBar, Image, ActivityIndicator, TextInput, View, RefreshControl } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { debounce } from 'lodash';
 import { Game } from '@/types/sports';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from 'react-native';
@@ -8,6 +9,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { MaterialCommunityIconName } from '@/types/icons';
 import axios from 'axios';
+import { SearchBar } from '@/components/SearchBar';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -53,6 +55,90 @@ type OddsGame = {
   }>;
 };
 
+const MOCK_PLAYERS = [
+  { name: 'Patrick Mahomes', team: 'Chiefs', position: 'NFL', sport: 'americanfootball', stat: 'Pass Yards' },
+  { name: 'LeBron James', team: 'Lakers', position: 'NBA', sport: 'basketball', stat: 'Points' },
+  { name: 'Connor McDavid', team: 'Oilers', position: 'NHL', sport: 'icehockey', stat: 'Points' },
+  { name: 'Shohei Ohtani', team: 'Dodgers', position: 'MLB', sport: 'baseball', stat: 'Home Runs' },
+  { name: 'Travis Kelce', team: 'Chiefs', position: 'NFL', sport: 'americanfootball', stat: 'Rec Yards' },
+  { name: 'Nikola Jokic', team: 'Nuggets', position: 'NBA', sport: 'basketball', stat: 'Rebounds' },
+  { name: 'Erling Haaland', team: 'Man City', position: 'EPL', sport: 'soccer', stat: 'Goals' },
+  { name: 'Auston Matthews', team: 'Leafs', position: 'NHL', sport: 'icehockey', stat: 'Goals' },
+];
+
+const MOCK_OPPONENTS = [
+  'Raiders', 'Warriors', 'Flames', 'Yankees', 
+  'Broncos', 'Celtics', 'Arsenal', 'Canadiens',
+  'Bills', 'Heat', 'Rangers', 'Astros'
+];
+
+// Create a memoized header component
+const ListHeader = React.memo(({ 
+  selectedSport,
+  setSelectedSport,
+  selectedFilter,
+  setSelectedFilter,
+  onSearch,
+  onClearSearch
+}: {
+  selectedSport: string;
+  setSelectedSport: (sport: string) => void;
+  selectedFilter: string;
+  setSelectedFilter: (filter: string) => void;
+  onSearch: (text: string) => void;
+  onClearSearch: () => void;
+}) => (
+  <ThemedView style={styles.topSection}>
+    <SearchBar 
+      onSearch={onSearch}
+      onClear={onClearSearch}
+    />
+    <ScrollView 
+      horizontal 
+      showsHorizontalScrollIndicator={false}
+      style={styles.sportsScroll}
+    >
+      {SPORTS.map(sport => (
+        <TouchableOpacity
+          key={sport.id}
+          style={[
+            styles.sportTab,
+            selectedSport === sport.id && styles.sportTabSelected,
+            { backgroundColor: selectedSport === sport.id ? sport.color : '#1E1E1E' }
+          ]}
+          onPress={() => setSelectedSport(sport.id)}
+        >
+          <MaterialCommunityIcons name={sport.icon} size={24} color="white" />
+          <ThemedText style={styles.sportText}>{sport.name}</ThemedText>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+    <ScrollView 
+      horizontal 
+      showsHorizontalScrollIndicator={false}
+      style={styles.filtersScroll}
+    >
+      {FILTERS.map(filter => (
+        <TouchableOpacity
+          key={filter.id}
+          style={[
+            styles.filterTab,
+            selectedFilter === filter.id && styles.filterTabSelected,
+          ]}
+          onPress={() => setSelectedFilter(filter.id)}
+        >
+          <ThemedText style={[
+            styles.filterText,
+            selectedFilter === filter.id && styles.filterTextSelected,
+          ]}>
+            {filter.label}
+          </ThemedText>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  </ThemedView>
+));
+
 export default function ExploreScreen() {
   const [selectedSport, setSelectedSport] = useState('nfl');
   const [selectedFilter, setSelectedFilter] = useState('popular');
@@ -60,72 +146,125 @@ export default function ExploreScreen() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
   const [loadedGameIds, setLoadedGameIds] = useState<Set<string>>(new Set());
   const [searchText, setSearchText] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isInitialLoadDone, setIsInitialLoadDone] = useState(false);
+  const [allGames, setAllGames] = useState<Game[]>([]);
+
+  const handleSearch = useCallback((text: string) => {
+    setSearchText(text);
+  }, []);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchText('');
+  }, []);
 
   const filteredGames = useMemo(() => {
+    console.log('filteredGames running with searchText:', searchText);
+    console.log('current games:', allGames.length);
     if (!searchText.trim()) {
-      return games;
+      return allGames;
     }
     const searchLower = searchText.toLowerCase();
-    return games.filter(game => {
-      return (
-        game.player.toLowerCase().includes(searchLower) ||
-        game.team.toLowerCase().includes(searchLower) ||
-        game.opponent.toLowerCase().includes(searchLower) ||
-        game.position.toLowerCase().includes(searchLower)
-      );
+    const filtered = allGames.filter(game => {
+      const matchPlayer = game.player.toLowerCase().includes(searchLower);
+      const matchTeam = game.team.toLowerCase().includes(searchLower);
+      const matchOpponent = game.opponent.toLowerCase().includes(searchLower);
+      const matchPosition = game.position.toLowerCase().includes(searchLower);
+      return matchPlayer || matchTeam || matchOpponent || matchPosition;
     });
-  }, [games, searchText]);
+    console.log('filtered results:', filtered.length);
+    return filtered;
+  }, [allGames, searchText]);
 
   const loadGames = useCallback(async () => {
+    console.log('loadGames called, loading:', loading);
     if (loading) return;
     setLoading(true);
     
     try {
-      const response = await axios.get('https://api.the-odds-api.com/v4/sports/upcoming/odds', {
-        params: {
-          apiKey: '34023186e3b9a7b42f66c91853d0d297',
-          regions: 'us',
-          markets: 'h2h,spreads',
-          oddsFormat: 'decimal',
-          page: page
-        }
+      console.log('generating games for sport:', selectedSport);
+      const mockGames: Game[] = Array.from({ length: 6 }, (_, index) => {
+        const eligiblePlayers = selectedSport === 'all' 
+          ? MOCK_PLAYERS 
+          : MOCK_PLAYERS.filter(p => p.position.toLowerCase() === selectedSport);
+        
+        const playerInfo = eligiblePlayers.length > 0 
+          ? eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)]
+          : MOCK_PLAYERS[Math.floor(Math.random() * MOCK_PLAYERS.length)];
+
+        const opponent = MOCK_OPPONENTS[Math.floor(Math.random() * MOCK_OPPONENTS.length)];
+        const prediction = (Math.random() * 30 + 10).toFixed(1);
+        const popularity = Math.floor(Math.random() * 200) + 'K';
+        const hour = Math.floor(Math.random() * 12) + 1;
+        const minute = Math.floor(Math.random() * 60);
+        const ampm = Math.random() > 0.5 ? 'AM' : 'PM';
+        
+        // Generate a truly unique ID using timestamp and random number
+        const uniqueId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${page}-${index}`;
+        
+        return {
+          id: uniqueId,
+          player: playerInfo.name,
+          position: playerInfo.position,
+          team: playerInfo.team,
+          opponent: opponent,
+          prediction: prediction,
+          stat: playerInfo.stat,
+          popularity: popularity,
+          time: `${hour}:${minute.toString().padStart(2, '0')} ${ampm}`,
+          sport: playerInfo.sport,
+          jersey: Math.floor(Math.random() * 99).toString(),
+          jerseyColor: '#' + Math.floor(Math.random()*16777215).toString(16)
+        };
       });
 
-      const newGames = response.data.filter((game: OddsGame) => !loadedGameIds.has(game.id));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const formattedGames = newGames.map((game: OddsGame) => ({
-        id: `${game.id}-${page}`,
-        player: game.home_team,
-        position: game.sport_key.toUpperCase(),
-        team: game.home_team.split(' ')[0],
-        opponent: game.away_team.split(' ')[game.away_team.split(' ').length - 1],
-        prediction: game.bookmakers?.[0]?.markets[0]?.outcomes[0]?.price.toFixed(1) || 'N/A',
-        stat: 'Win',
-        popularity: Math.floor(Math.random() * 200) + 'K',
-        time: new Date(game.commence_time).toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        }),
-        sport: game.sport_key || 'unknown',
-      }));
+      const newGameIds = new Set([...loadedGameIds, ...mockGames.map(game => game.id)]);
+      setLoadedGameIds(newGameIds);
+      
+      setGames(prev => {
+        const newGames = [...prev, ...mockGames];
+        console.log('total games after update:', newGames.length);
+        return newGames;
+      });
+      
+      setAllGames(prev => [...prev, ...mockGames]);
+      
+      setPage(prev => prev + 1);
+      if (!isInitialLoadDone) setIsInitialLoadDone(true);
 
-      if (formattedGames.length > 0) {
-        const newGameIds = new Set([...loadedGameIds, ...newGames.map((game: OddsGame) => game.id)]);
-        setLoadedGameIds(newGameIds);
-        
-        setGames(prev => [...prev, ...formattedGames]);
-        setPage(prev => prev + 1);
-      }
     } catch (error) {
       console.error('Error loading games:', error);
     } finally {
       setLoading(false);
     }
-  }, [page, loading, loadedGameIds]);
+  }, [page, loading, loadedGameIds, selectedSport, isInitialLoadDone]);
+
+  useEffect(() => {
+    setGames([]);
+    setAllGames([]);
+    setPage(1);
+    setLoadedGameIds(new Set());
+  }, [selectedSport]);
+
+  // Load initial games when component mounts
+  useEffect(() => {
+    loadGames();
+  }, []); // Empty dependency array for initial load only
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setGames([]); // Clear existing games
+    setAllGames([]); // Clear all games
+    setPage(1); // Reset page
+    setLoadedGameIds(new Set()); // Clear loaded IDs
+    await loadGames(); // Load new games
+    setRefreshing(false);
+  }, [loadGames]);
 
   const renderGameCard = ({ item }: any) => (
     <TouchableOpacity style={styles.gameCard}>
@@ -197,102 +336,73 @@ export default function ExploreScreen() {
     );
   };
 
+  const memoizedHeader = useMemo(() => (
+    <ListHeader
+      selectedSport={selectedSport}
+      setSelectedSport={setSelectedSport}
+      selectedFilter={selectedFilter}
+      setSelectedFilter={setSelectedFilter}
+      onSearch={handleSearch}
+      onClearSearch={handleClearSearch}
+    />
+  ), [selectedSport, selectedFilter, handleSearch, handleClearSearch]);
+
   return (
     <ThemedView style={styles.container}>
       <FlatList
         key="two-column-grid"
         data={filteredGames}
-        renderItem={renderGameCard}
+        renderItem={({ item }) => {
+          console.log('rendering game:', item.id);
+          return renderGameCard({ item });
+        }}
         keyExtractor={item => item.id}
-        onEndReached={loadGames}
+        onEndReached={() => {
+          if (!isSearching && !searchText && !refreshing && isInitialLoadDone) {
+            loadGames();
+          }
+        }}
         onEndReachedThreshold={0.5}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
         ListFooterComponent={renderFooter}
         contentContainerStyle={styles.gamesList}
         numColumns={2}
         columnWrapperStyle={styles.row}
-        ListHeaderComponent={() => (
-          <ThemedView style={styles.topSection}>
-            <View style={styles.searchContainer}>
-              <View style={styles.searchBarWrapper}>
-                <MaterialCommunityIcons 
-                  name="magnify" 
-                  size={20} 
-                  color="#FFFFFF80" 
-                  style={styles.searchIcon}
-                />
-                <TextInput
-                  value={searchText}
-                  onChangeText={setSearchText}
-                  placeholder="Search players, teams..."
-                  placeholderTextColor="#FFFFFF60"
-                  style={styles.searchInput}
-                  returnKeyType="search"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                {searchText.length > 0 && (
-                  <TouchableOpacity 
-                    onPress={() => setSearchText('')}
-                    style={styles.clearButton}
-                  >
-                    <MaterialCommunityIcons name="close" size={20} color="#FFFFFF80" />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.sportsScroll}
-            >
-              {SPORTS.map(sport => (
-                <TouchableOpacity
-                  key={sport.id}
-                  style={[
-                    styles.sportTab,
-                    selectedSport === sport.id && styles.sportTabSelected,
-                    { backgroundColor: selectedSport === sport.id ? sport.color : '#1E1E1E' }
-                  ]}
-                  onPress={() => setSelectedSport(sport.id)}
-                >
-                  <MaterialCommunityIcons 
-                    name={sport.icon} 
-                    size={24} 
-                    color="white"
-                  />
-                  <ThemedText style={styles.sportText}>
-                    {sport.name}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.filtersScroll}
-            >
-              {FILTERS.map(filter => (
-                <TouchableOpacity
-                  key={filter.id}
-                  style={[
-                    styles.filterTab,
-                    selectedFilter === filter.id && styles.filterTabSelected,
-                  ]}
-                  onPress={() => setSelectedFilter(filter.id)}
-                >
-                  <ThemedText style={[
-                    styles.filterText,
-                    selectedFilter === filter.id && styles.filterTextSelected,
-                  ]}>
-                    {filter.label}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </ThemedView>
-        )}
+        ListHeaderComponent={memoizedHeader}
+        ListEmptyComponent={() => {
+          console.log('ListEmptyComponent called with:', {
+            searchText,
+            loading,
+            gamesLength: games.length,
+            filteredGamesLength: filteredGames.length
+          });
+          return (
+            <ThemedView style={styles.emptyState}>
+              <ThemedText style={styles.emptyStateText}>
+                {searchText 
+                  ? 'No results found'
+                  : loading 
+                    ? 'Loading...' 
+                    : 'No games available'}
+              </ThemedText>
+            </ThemedView>
+          );
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FFFFFF"
+            titleColor="#FFFFFF"
+            colors={["#FFFFFF"]}
+            progressBackgroundColor="#1E1E1E"
+          />
+        }
+        maintainVisibleContentPosition={{
+          minIndexForVisible: 0,
+        }}
       />
     </ThemedView>
   );
@@ -314,6 +424,9 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ?? 20) + 20,
     paddingBottom: 12,
     backgroundColor: '#0A0A0A',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   sportsScroll: {
     paddingTop: 6,
@@ -433,6 +546,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   searchBarWrapper: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1E1E1E',
@@ -441,6 +555,18 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF20',
     paddingHorizontal: 12,
     height: 44,
+  },
+  searchBarWrapperFocused: {
+    borderColor: '#FFFFFF40',
+    backgroundColor: '#252525',
+  },
+  cancelButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  cancelText: {
+    color: '#FFFFFF',
+    fontSize: 16,
   },
   searchIcon: {
     marginRight: 8,
@@ -452,6 +578,7 @@ const styles = StyleSheet.create({
     height: '100%',
     padding: 0,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'normal',
+    paddingVertical: 8,
   },
   clearButton: {
     padding: 4,
@@ -497,5 +624,15 @@ const styles = StyleSheet.create({
   },
   filterTextSelected: {
     color: 'white',
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+  },
+  emptyStateText: {
+    color: '#FFFFFF80',
+    fontSize: 16,
   },
 });
