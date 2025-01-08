@@ -80,8 +80,7 @@ export const SearchBar = React.memo(({ onSearch, onClear }: SearchBarProps) => {
 const styles = StyleSheet.create({
   searchContainer: {
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 100 : 60,
-    paddingBottom: 12,
+    paddingVertical: 8,
     backgroundColor: '#0A0A0A',
     flexDirection: 'row',
     alignItems: 'center',

@@ -10,6 +10,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { MaterialCommunityIconName } from '@/types/icons';
 import axios from 'axios';
 import { SearchBar } from '@/components/SearchBar';
+import { GameDetailsModal } from '@/components/GameDetailsModal';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -93,12 +94,12 @@ const ListHeader = React.memo(({
       onSearch={onSearch}
       onClear={onClearSearch}
     />
-    <ScrollView 
-      horizontal 
+    <FlatList
+      horizontal
+      data={SPORTS}
       showsHorizontalScrollIndicator={false}
       style={styles.sportsScroll}
-    >
-      {SPORTS.map(sport => (
+      renderItem={({item: sport}) => (
         <TouchableOpacity
           key={sport.id}
           style={[
@@ -111,14 +112,15 @@ const ListHeader = React.memo(({
           <MaterialCommunityIcons name={sport.icon} size={24} color="white" />
           <ThemedText style={styles.sportText}>{sport.name}</ThemedText>
         </TouchableOpacity>
-      ))}
-    </ScrollView>
-    <ScrollView 
-      horizontal 
+      )}
+      keyExtractor={item => item.id}
+    />
+    <FlatList
+      horizontal
+      data={FILTERS}
       showsHorizontalScrollIndicator={false}
       style={styles.filtersScroll}
-    >
-      {FILTERS.map(filter => (
+      renderItem={({item: filter}) => (
         <TouchableOpacity
           key={filter.id}
           style={[
@@ -134,8 +136,9 @@ const ListHeader = React.memo(({
             {filter.label}
           </ThemedText>
         </TouchableOpacity>
-      ))}
-    </ScrollView>
+      )}
+      keyExtractor={item => item.id}
+    />
   </ThemedView>
 ));
 
@@ -152,6 +155,8 @@ export default function ExploreScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [isInitialLoadDone, setIsInitialLoadDone] = useState(false);
   const [allGames, setAllGames] = useState<Game[]>([]);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   const handleSearch = useCallback((text: string) => {
     setSearchText(text);
@@ -180,8 +185,8 @@ export default function ExploreScreen() {
   }, [allGames, searchText]);
 
   const loadGames = useCallback(async () => {
-    console.log('loadGames called, loading:', loading);
-    if (loading) return;
+    console.log('loadGames called, loading:', loading, 'page:', page);
+    if (loading || refreshing) return;
     setLoading(true);
     
     try {
@@ -242,7 +247,7 @@ export default function ExploreScreen() {
     } finally {
       setLoading(false);
     }
-  }, [page, loading, loadedGameIds, selectedSport, isInitialLoadDone]);
+  }, [page, loading, loadedGameIds, selectedSport, isInitialLoadDone, refreshing]);
 
   useEffect(() => {
     setGames([]);
@@ -266,50 +271,85 @@ export default function ExploreScreen() {
     setRefreshing(false);
   }, [loadGames]);
 
-  const renderGameCard = ({ item }: any) => (
-    <TouchableOpacity style={styles.gameCard}>
-      <ThemedView style={styles.gameCardInner}>
-        <ThemedView style={styles.jerseyContainer}>
-          <ThemedView style={styles.sportIconContainer}>
+  const renderGameCard = ({ item }: { item: Game }) => {
+    // Determine if prediction suggests "more" or "less"
+    const isMorePredicted = Math.random() > 0.5; // Replace this with your actual logic
+
+    return (
+      <TouchableOpacity 
+        style={styles.gameCard}
+        onPress={() => {
+          setSelectedGame(item);
+          setIsModalVisible(true);
+        }}
+      >
+        <ThemedView style={styles.gameCardInner}>
+          <ThemedView style={styles.jerseyContainer}>
+            <ThemedView style={styles.sportIconContainer}>
+              <MaterialCommunityIcons 
+                name={getSportIcon(item.sport)}
+                size={24} 
+                color="white"
+              />
+            </ThemedView>
+          </ThemedView>
+
+          <ThemedView style={styles.mainContent}>
+            <ThemedView style={styles.playerInfo}>
+              <ThemedText style={styles.position}>{item.position}</ThemedText>
+              <ThemedText style={styles.playerName}>{item.player}</ThemedText>
+              <ThemedText style={styles.matchup}>vs {item.opponent}</ThemedText>
+            </ThemedView>
+
+            <ThemedView style={styles.predictionInfo}>
+              <ThemedText style={styles.statValue}>{item.prediction}</ThemedText>
+              <ThemedText style={styles.statLabel}>{item.stat}</ThemedText>
+            </ThemedView>
+
+            <ThemedView style={styles.popularityContainer}>
+              <MaterialCommunityIcons name="fire" size={14} color="#FF9800" />
+              <ThemedText style={styles.popularityText}>{item.popularity}</ThemedText>
+            </ThemedView>
+          </ThemedView>
+        </ThemedView>
+
+        <ThemedView style={styles.actionButtons}>
+          <ThemedView 
+            style={[
+              styles.actionButton,
+              !isMorePredicted && styles.actionButtonHighlight
+            ]}
+          >
             <MaterialCommunityIcons 
-              name={getSportIcon(item.sport)}
-              size={24} 
-              color="white"
+              name="chevron-down" 
+              size={20} 
+              color={!isMorePredicted ? "#FFFFFF" : "#FFFFFF80"} 
             />
+            <ThemedText style={[
+              styles.actionButtonText,
+              !isMorePredicted && styles.actionButtonTextHighlight
+            ]}>Less</ThemedText>
+          </ThemedView>
+          <ThemedView 
+            style={[
+              styles.actionButton,
+              isMorePredicted && styles.actionButtonHighlight
+            ]}
+          >
+            <MaterialCommunityIcons 
+              name="chevron-up" 
+              size={20} 
+              color={isMorePredicted ? "#FFFFFF" : "#FFFFFF80"} 
+            />
+            <ThemedText style={[
+              styles.actionButtonText,
+              isMorePredicted && styles.actionButtonTextHighlight
+            ]}>More</ThemedText>
           </ThemedView>
         </ThemedView>
-
-        <ThemedView style={styles.mainContent}>
-          <ThemedView style={styles.playerInfo}>
-            <ThemedText style={styles.position}>{item.position}</ThemedText>
-            <ThemedText style={styles.playerName}>{item.player}</ThemedText>
-            <ThemedText style={styles.matchup}>vs {item.opponent}</ThemedText>
-          </ThemedView>
-
-          <ThemedView style={styles.predictionInfo}>
-            <ThemedText style={styles.statValue}>{item.prediction}</ThemedText>
-            <ThemedText style={styles.statLabel}>{item.stat}</ThemedText>
-          </ThemedView>
-
-          <ThemedView style={styles.popularityContainer}>
-            <MaterialCommunityIcons name="fire" size={14} color="#FF9800" />
-            <ThemedText style={styles.popularityText}>{item.popularity}</ThemedText>
-          </ThemedView>
-        </ThemedView>
-      </ThemedView>
-
-      <ThemedView style={styles.actionButtons}>
-        <TouchableOpacity style={styles.actionButton}>
-          <MaterialCommunityIcons name="chevron-down" size={20} color="#FFFFFF80" />
-          <ThemedText style={styles.actionButtonText}>Less</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionButton, styles.actionButtonHighlight]}>
-          <MaterialCommunityIcons name="chevron-up" size={20} color="#FFFFFF80" />
-          <ThemedText style={styles.actionButtonText}>More</ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const getSportIcon = (sportKey: string | undefined): IconName => {
     if (!sportKey) return 'help-circle'; // Default icon if sport is undefined
@@ -347,49 +387,91 @@ export default function ExploreScreen() {
     />
   ), [selectedSport, selectedFilter, handleSearch, handleClearSearch]);
 
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    setSelectedGame(null);
+  };
+
   return (
     <ThemedView style={styles.container}>
+      <ThemedView style={styles.fixedHeader}>
+        <SearchBar 
+          onSearch={handleSearch}
+          onClear={handleClearSearch}
+        />
+        <FlatList
+          horizontal
+          data={SPORTS}
+          showsHorizontalScrollIndicator={false}
+          style={styles.sportsScroll}
+          renderItem={({item: sport}) => (
+            <TouchableOpacity
+              key={sport.id}
+              style={[
+                styles.sportTab,
+                selectedSport === sport.id && styles.sportTabSelected,
+                { backgroundColor: selectedSport === sport.id ? sport.color : '#1E1E1E' }
+              ]}
+              onPress={() => setSelectedSport(sport.id)}
+            >
+              <MaterialCommunityIcons name={sport.icon} size={24} color="white" />
+              <ThemedText style={styles.sportText}>{sport.name}</ThemedText>
+            </TouchableOpacity>
+          )}
+          keyExtractor={item => item.id}
+        />
+        <FlatList
+          horizontal
+          data={FILTERS}
+          showsHorizontalScrollIndicator={false}
+          style={styles.filtersScroll}
+          renderItem={({item: filter}) => (
+            <TouchableOpacity
+              key={filter.id}
+              style={[
+                styles.filterTab,
+                selectedFilter === filter.id && styles.filterTabSelected,
+              ]}
+              onPress={() => setSelectedFilter(filter.id)}
+            >
+              <ThemedText style={[
+                styles.filterText,
+                selectedFilter === filter.id && styles.filterTextSelected,
+              ]}>
+                {filter.label}
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+          keyExtractor={item => item.id}
+        />
+      </ThemedView>
+
       <FlatList
         key="two-column-grid"
         data={filteredGames}
-        renderItem={({ item }) => {
-          console.log('rendering game:', item.id);
-          return renderGameCard({ item });
-        }}
+        renderItem={renderGameCard}
         keyExtractor={item => item.id}
         onEndReached={() => {
-          if (!isSearching && !searchText && !refreshing && isInitialLoadDone) {
+          if (!loading && !refreshing && !searchText) {
             loadGames();
           }
         }}
         onEndReachedThreshold={0.5}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        windowSize={10}
         ListFooterComponent={renderFooter}
         contentContainerStyle={styles.gamesList}
         numColumns={2}
         columnWrapperStyle={styles.row}
-        ListHeaderComponent={memoizedHeader}
-        ListEmptyComponent={() => {
-          console.log('ListEmptyComponent called with:', {
-            searchText,
-            loading,
-            gamesLength: games.length,
-            filteredGamesLength: filteredGames.length
-          });
-          return (
-            <ThemedView style={styles.emptyState}>
-              <ThemedText style={styles.emptyStateText}>
-                {searchText 
-                  ? 'No results found'
-                  : loading 
-                    ? 'Loading...' 
-                    : 'No games available'}
-              </ThemedText>
-            </ThemedView>
-          );
-        }}
+        ListEmptyComponent={() => (
+          <ThemedView style={styles.emptyState}>
+            <ThemedText style={styles.emptyStateText}>
+              {searchText 
+                ? 'No results found'
+                : loading 
+                  ? 'Loading...' 
+                  : 'No games available'}
+            </ThemedText>
+          </ThemedView>
+        )}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -400,9 +482,13 @@ export default function ExploreScreen() {
             progressBackgroundColor="#1E1E1E"
           />
         }
-        maintainVisibleContentPosition={{
-          minIndexForVisible: 0,
-        }}
+        bounces={true}
+        showsVerticalScrollIndicator={true}
+      />
+      <GameDetailsModal
+        game={selectedGame}
+        visible={isModalVisible}
+        onClose={handleCloseModal}
       />
     </ThemedView>
   );
@@ -413,32 +499,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0A0A0A',
   },
-  topSection: {
-    paddingBottom: 12,
+  fixedHeader: {
     backgroundColor: '#0A0A0A',
     borderBottomWidth: 1,
     borderBottomColor: '#FFFFFF10',
-  },
-  searchContainer: {
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ?? 20) + 20,
-    paddingBottom: 12,
-    backgroundColor: '#0A0A0A',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ?? 20),
+    zIndex: 1,
   },
   sportsScroll: {
-    paddingTop: 6,
-    flexGrow: 0,
+    height: 48,
+    paddingHorizontal: 16,
+    marginTop: 12,
   },
   filtersScroll: {
-    paddingHorizontal: 0,
-    paddingTop: 12,
-    flexGrow: 0,
+    height: 52,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 4,
+    marginBottom: 4,
   },
   gamesList: {
-    paddingTop: 12,
+    paddingTop: 8,
+    paddingBottom: 20,
   },
   row: {
     justifyContent: 'space-between',
@@ -525,7 +607,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   actionButtonHighlight: {
-    backgroundColor: '#252525',
+    backgroundColor: '#1E3A5F',
   },
   actionButtonText: {
     color: '#FFFFFF80',
@@ -602,16 +684,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   filterTab: {
-    padding: 10,
+    padding: 8,
     paddingHorizontal: 16,
     marginRight: 8,
-    marginHorizontal: 12,
     borderRadius: 20,
     backgroundColor: '#1E1E1E',
     borderWidth: 1,
     borderColor: '#FFFFFF10',
-    height: 40,
+    height: 36,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   filterTabSelected: {
     backgroundColor: '#FFFFFF15',
@@ -620,10 +702,11 @@ const styles = StyleSheet.create({
   filterText: {
     color: '#FFFFFF80',
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   filterTextSelected: {
     color: 'white',
+    fontWeight: '500',
   },
   emptyState: {
     flex: 1,
@@ -634,5 +717,8 @@ const styles = StyleSheet.create({
   emptyStateText: {
     color: '#FFFFFF80',
     fontSize: 16,
+  },
+  actionButtonTextHighlight: {
+    color: '#FFFFFF',
   },
 });
