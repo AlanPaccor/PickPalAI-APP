@@ -92,7 +92,7 @@ export default function AssistantScreen() {
           value={message}
           onChangeText={setMessage}
           placeholder="Type a message..."
-          placeholderTextColor="#666"
+          placeholderTextColor="#888"
           multiline
         />
         <TouchableOpacity 
@@ -110,14 +110,14 @@ export default function AssistantScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#1A1A1A',
   },
   imagePreviewContainer: {
     padding: 10,
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#2A2A2A',
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: '#333',
   },
   imagePreview: {
     width: 150,
@@ -139,17 +139,17 @@ const styles = StyleSheet.create({
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 1,
   },
   userMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#0A84FF',
     borderBottomRightRadius: 5,
   },
   assistantMessage: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#2A2A2A',
     borderBottomLeftRadius: 5,
   },
   messageText: {
@@ -160,28 +160,28 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   assistantMessageText: {
-    color: '#000000',
+    color: '#FFFFFF',
   },
   inputContainer: {
     flexDirection: 'row',
     padding: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#2A2A2A',
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: '#333',
   },
   input: {
     flex: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#333333',
     borderRadius: 25,
     paddingHorizontal: 20,
     paddingVertical: 10,
     marginRight: 10,
     fontSize: 16,
     maxHeight: 100,
-    color: '#000000',
+    color: '#FFFFFF',
   },
   sendButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#0A84FF',
     borderRadius: 25,
     width: 50,
     height: 50,
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sendButtonDisabled: {
-    backgroundColor: '#B0B0B0',
+    backgroundColor: '#404040',
   },
   sendButtonText: {
     color: '#FFFFFF',
