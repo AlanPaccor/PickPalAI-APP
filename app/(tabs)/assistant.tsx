@@ -2,6 +2,9 @@ import { StyleSheet, Text, View, TextInput, ScrollView, TouchableOpacity, Image 
 import { useState, useEffect } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
+
+const OPENAI_API_KEY = Constants.expoConfig?.extra?.OPENAI_API_KEY;
 
 export default function AssistantScreen() {
   const { imageUri, type, extractedText } = useLocalSearchParams<{ 
@@ -11,47 +14,136 @@ export default function AssistantScreen() {
   }>();
   const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (imageUri && extractedText) {
       console.log('Received image and text in assistant:', imageUri);
-      processTicketImage(imageUri, extractedText);
+      processTicketWithAI(extractedText);
     }
   }, [imageUri, extractedText]);
 
-  const processTicketImage = async (uri: string, text: string) => {
+  const processTicketWithAI = async (text: string) => {
     try {
-      console.log('Processing ticket with text:', decodeURIComponent(text));
+      setIsLoading(true);
+      const decodedText = decodeURIComponent(text);
       
-      // Add the extracted text to the chat
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [
+            {
+              role: "system",
+              content: `You are a friendly sports betting assistant. Your job is to:
+              1. Break down betting tickets in simple terms
+              2. Look up and share the player's most recent performance stats
+              3. Explain what needs to happen for the bet to win
+              4. Give a simple analysis in everyday language
+              5. Avoid complex betting terminology
+              6. If you mention any stats, explain why they matter`
+            },
+            {
+              role: "user",
+              content: `Here's my betting ticket - can you explain it in simple terms and tell me about the player's recent performance? ${decodedText}`
+            }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`OpenAI API Error: ${JSON.stringify(errorData)}`);
+      }
+
+      const data = await response.json();
+      const aiResponse = data.choices[0]?.message?.content || "Sorry, I couldn't analyze the ticket properly.";
+
       setChatHistory(prev => [...prev, {
         role: 'assistant',
-        content: `I've analyzed your ticket. Here's what I found:\n\n${decodeURIComponent(text)}\n\nWhat would you like to know about this ticket?`
+        content: aiResponse
       }]);
 
     } catch (error) {
-      console.error('Processing Error:', error);
+      console.error('AI Processing Error:', error);
       setChatHistory(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, I had trouble processing that ticket. Could you try uploading it again?'
+        content: 'Sorry, I had trouble analyzing your ticket. Want to try asking me about it in a different way?'
       }]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSend = () => {
-    if (message.trim() === '') return;
+  const handleSend = async () => {
+    if (message.trim() === '' || isLoading) return;
 
-    // Add user message to chat
-    setChatHistory(prev => [...prev, { role: 'user', content: message.trim() }]);
-    
-    // TODO: Add your AI API call here
-    // For now, just echo the message
-    setTimeout(() => {
-      setChatHistory(prev => [...prev, { role: 'assistant', content: `You said: ${message}` }]);
-    }, 500);
-
+    const userMessage = message.trim();
+    setChatHistory(prev => [...prev, { role: 'user', content: userMessage }]);
     setMessage('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [
+            {
+              role: "system",
+              content: `You are a friendly sports betting assistant who:
+              1. Uses simple, everyday language
+              2. Provides relevant recent player stats when discussing players
+              3. Explains concepts as if talking to a friend
+              4. Breaks down complex ideas into simple terms
+              5. Focuses on what matters most to the bettor
+              6. Always explains why certain stats or information is important`
+            },
+            ...chatHistory.map(msg => ({
+              role: msg.role,
+              content: msg.content
+            })),
+            {
+              role: "user",
+              content: userMessage
+            }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`OpenAI API Error: ${JSON.stringify(errorData)}`);
+      }
+
+      const data = await response.json();
+      const aiResponse = data.choices[0]?.message?.content || "I'm sorry, I couldn't process that request.";
+
+      setChatHistory(prev => [...prev, {
+        role: 'assistant',
+        content: aiResponse
+      }]);
+
+    } catch (error) {
+      console.error('Chat Error:', error);
+      setChatHistory(prev => [...prev, {
+        role: 'assistant',
+        content: "Sorry, I ran into an error. Let's try that again!"
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -88,6 +180,11 @@ export default function AssistantScreen() {
             </Text>
           </View>
         ))}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Analyzing...</Text>
+          </View>
+        )}
       </ScrollView>
       
       <View style={styles.inputContainer}>
@@ -95,14 +192,18 @@ export default function AssistantScreen() {
           style={styles.input}
           value={message}
           onChangeText={setMessage}
-          placeholder="Type a message..."
+          placeholder="Ask about your ticket..."
           placeholderTextColor="#888"
           multiline
+          editable={!isLoading}
         />
         <TouchableOpacity 
-          style={[styles.sendButton, !message.trim() && styles.sendButtonDisabled]}
+          style={[
+            styles.sendButton, 
+            (!message.trim() || isLoading) && styles.sendButtonDisabled
+          ]}
           onPress={handleSend}
-          disabled={!message.trim()}
+          disabled={!message.trim() || isLoading}
         >
           <Text style={styles.sendButtonText}>Send</Text>
         </TouchableOpacity>
@@ -110,6 +211,17 @@ export default function AssistantScreen() {
     </View>
   );
 }
+
+const additionalStyles = StyleSheet.create({
+  loadingContainer: {
+    padding: 10,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#888',
+    fontSize: 14,
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -200,4 +312,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  ...additionalStyles,
 }); 

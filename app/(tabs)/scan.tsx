@@ -4,13 +4,14 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { router } from 'expo-router';
 import { useState } from 'react';
+import Constants from 'expo-constants';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 const { width } = Dimensions.get('window');
 
-const GOOGLE_CLOUD_VISION_API_KEY = 'AIzaSyDoL-JXepjTwXauelMaR6kRPkYa3tAndYg';
+const GOOGLE_CLOUD_VISION_API_KEY = Constants.expoConfig?.extra?.GOOGLE_CLOUD_VISION_API_KEY;
 
 export default function ScanScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -27,6 +28,10 @@ export default function ScanScreen() {
         { base64: true, compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
       );
       
+      if (!processedImage.base64) {
+        throw new Error('Failed to process image to base64');
+      }
+
       console.log('Processing image:', processedImage.uri);
 
       // Call Google Cloud Vision API
@@ -57,8 +62,17 @@ export default function ScanScreen() {
         }
       );
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`API Error: ${JSON.stringify(errorData)}`);
+      }
+
       const data = await response.json();
-      const extractedText = data.responses[0]?.fullTextAnnotation?.text || '';
+      const extractedText = data.responses[0]?.fullTextAnnotation?.text;
+
+      if (!extractedText) {
+        throw new Error('No text was extracted from the image');
+      }
 
       console.log('Extracted text:', extractedText);
       
@@ -74,22 +88,29 @@ export default function ScanScreen() {
 
     } catch (error) {
       console.error('Image Processing Error:', error);
+      // You might want to show an error message to the user here
     } finally {
       setIsProcessing(false);
     }
   };
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 1,
-    });
+    try {
+      // Update to use new MediaType API
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 1,
+      });
 
-    if (!result.canceled) {
-      const imageUri = result.assets[0].uri;
-      setSelectedImage(imageUri);
-      await processImage(imageUri);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        setSelectedImage(imageUri);
+        await processImage(imageUri);
+      }
+    } catch (error) {
+      console.error('Image Picker Error:', error);
+      // You might want to show an error message to the user here
     }
   };
 
@@ -156,6 +177,7 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 24,
     paddingTop: Platform.select({ ios: 100, android: 100, web: 100 }),
+    backgroundColor: '#1A1A1A',
   },
   header: {
     gap: 8,
@@ -163,11 +185,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   subtitle: {
     fontSize: 16,
     opacity: 0.7,
     lineHeight: 22,
+    color: '#FFFFFF',
   },
   uploadArea: {
     flex: 1,
@@ -181,6 +205,7 @@ const styles = StyleSheet.create({
     borderColor: '#1E90FF30',
     borderStyle: 'dashed',
     overflow: 'hidden',
+    backgroundColor: '#2A2A2A',
   },
   uploadPlaceholder: {
     flex: 1,
@@ -188,6 +213,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     padding: 20,
+    backgroundColor: '#2A2A2A',
   },
   uploadText: {
     fontSize: 16,
@@ -197,6 +223,7 @@ const styles = StyleSheet.create({
   supportedFormats: {
     fontSize: 12,
     opacity: 0.5,
+    color: '#FFFFFF',
   },
   previewImage: {
     width: '100%',
@@ -209,11 +236,13 @@ const styles = StyleSheet.create({
     gap: 16,
     borderWidth: 1,
     borderColor: '#ffffff10',
+    backgroundColor: '#2A2A2A',
   },
   instructionsTitle: {
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 4,
+    color: '#FFFFFF',
   },
   step: {
     flexDirection: 'row',
@@ -237,6 +266,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     lineHeight: 22,
+    color: '#FFFFFF',
   },
   processingOverlay: {
     position: 'absolute',
