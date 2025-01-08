@@ -10,6 +10,8 @@ import { ThemedView } from '@/components/ThemedView';
 
 const { width } = Dimensions.get('window');
 
+const GOOGLE_CLOUD_VISION_API_KEY = 'AIzaSyDoL-JXepjTwXauelMaR6kRPkYa3tAndYg';
+
 export default function ScanScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -22,17 +24,51 @@ export default function ScanScreen() {
       const processedImage = await ImageManipulator.manipulateAsync(
         imageUri,
         [{ resize: { width: 1024 } }],
-        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+        { base64: true, compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
       );
       
       console.log('Processing image:', processedImage.uri);
+
+      // Call Google Cloud Vision API
+      const body = {
+        requests: [
+          {
+            image: {
+              content: processedImage.base64,
+            },
+            features: [
+              {
+                type: 'TEXT_DETECTION',
+                maxResults: 1,
+              },
+            ],
+          },
+        ],
+      };
+
+      const response = await fetch(
+        `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_CLOUD_VISION_API_KEY}`,
+        {
+          method: 'POST',
+          body: JSON.stringify(body),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const data = await response.json();
+      const extractedText = data.responses[0]?.fullTextAnnotation?.text || '';
+
+      console.log('Extracted text:', extractedText);
       
-      // Navigate to assistant with the processed image
+      // Navigate to assistant with the processed image and extracted text
       router.push({
         pathname: "./assistant",
         params: { 
           imageUri: processedImage.uri,
-          type: 'ticket'
+          type: 'ticket',
+          extractedText: encodeURIComponent(extractedText)
         }
       });
 

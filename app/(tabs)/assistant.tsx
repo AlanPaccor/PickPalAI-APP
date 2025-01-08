@@ -4,33 +4,37 @@ import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AssistantScreen() {
-  const { imageUri, type } = useLocalSearchParams<{ imageUri: string, type: string }>();
+  const { imageUri, type, extractedText } = useLocalSearchParams<{ 
+    imageUri: string, 
+    type: string,
+    extractedText: string 
+  }>();
   const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    if (imageUri) {
-      console.log('Received image in assistant:', imageUri);
-      processTicketImage(imageUri);
+    if (imageUri && extractedText) {
+      console.log('Received image and text in assistant:', imageUri);
+      processTicketImage(imageUri, extractedText);
     }
-  }, [imageUri]);
+  }, [imageUri, extractedText]);
 
-  const processTicketImage = async (uri: string) => {
+  const processTicketImage = async (uri: string, text: string) => {
     try {
-      console.log('Starting processing for:', uri);
+      console.log('Processing ticket with text:', decodeURIComponent(text));
       
-      // For now, just acknowledge receipt of the image
+      // Add the extracted text to the chat
       setChatHistory(prev => [...prev, {
         role: 'assistant',
-        content: `I received your ticket image. OCR processing will be implemented later.`
+        content: `I've analyzed your ticket. Here's what I found:\n\n${decodeURIComponent(text)}\n\nWhat would you like to know about this ticket?`
       }]);
 
     } catch (error) {
       console.error('Processing Error:', error);
       setChatHistory(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, I had trouble with that ticket. Could you try uploading it again?'
+        content: 'Sorry, I had trouble processing that ticket. Could you try uploading it again?'
       }]);
     }
   };
