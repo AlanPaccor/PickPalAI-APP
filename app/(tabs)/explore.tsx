@@ -1,6 +1,6 @@
-import { StyleSheet, Platform, TouchableOpacity, ScrollView, FlatList, StatusBar, Image, ActivityIndicator } from 'react-native';
+import { StyleSheet, Platform, TouchableOpacity, ScrollView, FlatList, StatusBar, Image, ActivityIndicator, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Game } from '@/types/sports';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from 'react-native';
@@ -62,6 +62,22 @@ export default function ExploreScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const [loadedGameIds, setLoadedGameIds] = useState<Set<string>>(new Set());
+  const [searchText, setSearchText] = useState('');
+
+  const filteredGames = useMemo(() => {
+    if (!searchText.trim()) {
+      return games;
+    }
+    const searchLower = searchText.toLowerCase();
+    return games.filter(game => {
+      return (
+        game.player.toLowerCase().includes(searchLower) ||
+        game.team.toLowerCase().includes(searchLower) ||
+        game.opponent.toLowerCase().includes(searchLower) ||
+        game.position.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [games, searchText]);
 
   const loadGames = useCallback(async () => {
     if (loading) return;
@@ -185,7 +201,7 @@ export default function ExploreScreen() {
     <ThemedView style={styles.container}>
       <FlatList
         key="two-column-grid"
-        data={games}
+        data={filteredGames}
         renderItem={renderGameCard}
         keyExtractor={item => item.id}
         onEndReached={loadGames}
@@ -196,12 +212,34 @@ export default function ExploreScreen() {
         columnWrapperStyle={styles.row}
         ListHeaderComponent={() => (
           <ThemedView style={styles.topSection}>
-            <ThemedView style={styles.searchContainer}>
-              <ThemedView style={styles.searchBar}>
-                <MaterialCommunityIcons name="magnify" size={20} color="#FFFFFF80" />
-                <ThemedText style={styles.searchInput}>Search games...</ThemedText>
-              </ThemedView>
-            </ThemedView>
+            <View style={styles.searchContainer}>
+              <View style={styles.searchBarWrapper}>
+                <MaterialCommunityIcons 
+                  name="magnify" 
+                  size={20} 
+                  color="#FFFFFF80" 
+                  style={styles.searchIcon}
+                />
+                <TextInput
+                  value={searchText}
+                  onChangeText={setSearchText}
+                  placeholder="Search players, teams..."
+                  placeholderTextColor="#FFFFFF60"
+                  style={styles.searchInput}
+                  returnKeyType="search"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {searchText.length > 0 && (
+                  <TouchableOpacity 
+                    onPress={() => setSearchText('')}
+                    style={styles.clearButton}
+                  >
+                    <MaterialCommunityIcons name="close" size={20} color="#FFFFFF80" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
 
             <ScrollView 
               horizontal 
@@ -272,17 +310,18 @@ const styles = StyleSheet.create({
     borderBottomColor: '#FFFFFF10',
   },
   searchContainer: {
-    paddingHorizontal: 12,
-    paddingTop: Platform.OS === 'ios' ? 47 : StatusBar.currentHeight || 0,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ?? 20) + 20,
     paddingBottom: 12,
+    backgroundColor: '#0A0A0A',
   },
   sportsScroll: {
-    paddingHorizontal: 12,
+    paddingTop: 6,
     flexGrow: 0,
   },
   filtersScroll: {
-    paddingHorizontal: 12,
-    marginVertical: 12,
+    paddingHorizontal: 0,
+    paddingTop: 12,
     flexGrow: 0,
   },
   gamesList: {
@@ -393,17 +432,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  searchBar: {
+  searchBarWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1E1E1E',
     borderRadius: 12,
-    padding: 12,
-    gap: 8,
+    borderWidth: 1,
+    borderColor: '#FFFFFF20',
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  searchIcon: {
+    marginRight: 8,
   },
   searchInput: {
-    color: '#FFFFFF80',
-    fontSize: 14,
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
+    height: '100%',
+    padding: 0,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'normal',
+  },
+  clearButton: {
+    padding: 4,
   },
   sportTab: {
     flexDirection: 'row',
