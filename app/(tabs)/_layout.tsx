@@ -95,12 +95,10 @@ export default function TabLayout() {
         <Tabs.Screen
           name="assistant"
           options={{
-            title: '',
-            tabBarIcon: ({ color, focused }) => <AssistantIcon color={color} focused={focused} />,
-            tabBarItemStyle: {
-              marginTop: 0,
-            },
-            headerShown: false,
+            title: 'Assistant',
+            tabBarIcon: ({ color }) => (
+              <MaterialIcons name="chat" size={24} color={color} />
+            ),
           }}
         />
         <Tabs.Screen
