@@ -1,4 +1,4 @@
-import { StyleSheet, Platform, TouchableOpacity, ScrollView, StatusBar, View, LayoutChangeEvent, ActivityIndicator } from 'react-native';
+import { StyleSheet, Platform, TouchableOpacity, ScrollView, StatusBar, View, LayoutChangeEvent, ActivityIndicator, Modal } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColorScheme } from 'react-native';
 import Colors from '@/constants/Colors';
@@ -14,8 +14,9 @@ import Animated, {
   cancelAnimation,
   useAnimatedStyle,
   Easing,
+  runOnJS,
 } from 'react-native-reanimated';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useBetCount } from '../hooks/useBetCount';
 import { useTranslation } from 'react-i18next';
@@ -35,6 +36,168 @@ const hotPicks = [
   { player: 'Nikola Jokic', stat: 'Assists > 8.5', confidence: 82 },
   { player: 'Luka Doncic', stat: 'Rebounds > 9.5', confidence: 75 },
 ];
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  time: Date;
+  read: boolean;
+  link?: string;
+  type?: 'predictions' | 'results' | 'insights' | 'news' | 'promotions';
+}
+
+const tempNotifications: Notification[] = [
+  {
+    id: '1',
+    title: 'New AI Prediction Available',
+    message: "Check out our latest prediction for tonight's NBA games",
+    time: new Date(),
+    read: false,
+  },
+  {
+    id: '2',
+    title: 'Winning Streak! 🔥',
+    message: 'Your last 5 bets were successful. Keep it up!',
+    time: new Date(),
+    read: false,
+  },
+  {
+    id: '3',
+    title: 'Market Update',
+    message: 'New betting opportunities detected in MLB props',
+    time: new Date(),
+    read: true,
+  },
+];
+
+const NotificationsModal = ({ 
+  visible, 
+  onClose, 
+  notifications,
+  onNotificationPress,
+  loading
+}: { 
+  visible: boolean;
+  onClose: () => void;
+  notifications: Notification[];
+  onNotificationPress: (id: string) => void;
+  loading: boolean;
+}) => {
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
+  const translateY = useSharedValue(1000);
+  const opacity = useSharedValue(0);
+  const [isRendered, setIsRendered] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setIsRendered(true);
+      opacity.value = withTiming(1, { duration: 200 });
+      translateY.value = withTiming(0, {
+        duration: 300,
+        easing: Easing.bezier(0.33, 1, 0.68, 1),
+      });
+    } else {
+      opacity.value = withTiming(0, { duration: 200 });
+      translateY.value = withTiming(1000, {
+        duration: 200,
+        easing: Easing.bezier(0.33, 1, 0.68, 1),
+      }, () => {
+        // Only hide the modal after animation completes
+        runOnJS(setIsRendered)(false);
+      });
+    }
+  }, [visible]);
+
+  const overlayStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  const modalStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  const formatTime = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    return 'Just now';
+  };
+
+  if (!isRendered) return null;
+
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <Animated.View style={[styles.modalOverlay, overlayStyle]}>
+        <TouchableOpacity 
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+      </Animated.View>
+      
+      <Animated.View style={[styles.modalContainer, modalStyle]}>
+        <ThemedView style={styles.notificationModal}>
+          <View style={styles.notificationHandle} />
+          <ThemedView style={styles.notificationHeader}>
+            <ThemedText type="title">Notifications</ThemedText>
+            <TouchableOpacity 
+              onPress={onClose}
+              style={styles.closeButton}
+            >
+              <MaterialCommunityIcons 
+                name="close" 
+                size={24} 
+                color={theme.tint}
+              />
+            </TouchableOpacity>
+          </ThemedView>
+
+          <ScrollView 
+            style={styles.notificationList}
+            showsVerticalScrollIndicator={false}
+          >
+            {loading ? (
+              <ActivityIndicator size="large" color="#1E90FF" style={{ marginTop: 20 }} />
+            ) : notifications.length === 0 ? (
+              <ThemedView style={styles.emptyState}>
+                <ThemedText style={styles.emptyStateText}>No notifications yet</ThemedText>
+              </ThemedView>
+            ) : (
+              notifications.map((notification) => (
+                <TouchableOpacity
+                  key={notification.id}
+                  style={[
+                    styles.notificationItem,
+                    !notification.read && styles.unreadNotification
+                  ]}
+                  onPress={() => onNotificationPress(notification.id)}
+                >
+                  <ThemedText style={styles.notificationTitle}>
+                    {notification.title}
+                  </ThemedText>
+                  <ThemedText style={styles.notificationMessage}>
+                    {notification.message}
+                  </ThemedText>
+                  <ThemedText style={styles.notificationTime}>
+                    {formatTime(notification.time)}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        </ThemedView>
+      </Animated.View>
+    </View>
+  );
+};
 
 const RecentWinners = () => {
   const scrollViewRef = useRef<ScrollView>(null);
@@ -94,6 +257,81 @@ const RecentWinners = () => {
   );
 };
 
+const useNotifications = (userId: string | undefined) => {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [preferences, setPreferences] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    const userRef = doc(db, 'users', userId);
+    const unsubscribe = onSnapshot(
+      userRef,
+      (doc) => {
+        if (doc.exists()) {
+          const userData = doc.data();
+          const notificationsData = userData.notifications || [];
+          const userPreferences = userData.notificationPreferences || {};
+          setPreferences(userPreferences);
+          
+          // Filter notifications based on preferences
+          const filteredNotifications = notificationsData
+            .filter((notification: any) => {
+              // If no preference is set for this type, show the notification
+              if (!notification.type) return true;
+              return userPreferences[notification.type] !== false;
+            })
+            .map((notification: any) => ({
+              ...notification,
+              time: notification.time?.toDate() || new Date(),
+            }))
+            .sort((a: Notification, b: Notification) => b.time.getTime() - a.time.getTime());
+
+          setNotifications(filteredNotifications);
+        }
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error fetching notifications:', error);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [userId]);
+
+  const markAsRead = async (notificationId: string) => {
+    if (!userId) return;
+
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const updatedNotifications = (userData.notifications || []).map((notification: any) => {
+          if (notification.id === notificationId) {
+            return { ...notification, read: true };
+          }
+          return notification;
+        });
+
+        await updateDoc(userRef, {
+          notifications: updatedNotifications
+        });
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  return { notifications, loading, markAsRead };
+};
+
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
@@ -101,6 +339,8 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const { betCount } = useBetCount();
   const { t } = useTranslation();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { notifications, loading: notificationsLoading, markAsRead } = useNotifications(user?.uid);
 
   useEffect(() => {
     const checkSubscription = async () => {
@@ -124,6 +364,18 @@ export default function HomeScreen() {
     checkSubscription();
   }, [user]);
 
+  const handleNotificationPress = async (notificationId: string) => {
+    const notification = notifications.find(n => n.id === notificationId);
+    if (!notification) return;
+
+    await markAsRead(notificationId);
+    
+    if (notification.link) {
+      router.push(notification.link);
+    }
+    setShowNotifications(false);
+  };
+
   if (isLoading) {
     return (
       <ThemedView style={styles.loadingContainer}>
@@ -133,61 +385,88 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <ThemedView style={styles.header}>
-        <ThemedView style={styles.logoContainer}>
-          <MaterialCommunityIcons name="trophy" size={32} color="#1E90FF" />
-          <ThemedText style={styles.logoText}>SPORTSAI</ThemedText>
-        </ThemedView>
-      </ThemedView>
-
-      {/* Profile Section */}
-      <ThemedView style={styles.profileSection}>
-        <ThemedText style={styles.profileName}>Welcome!</ThemedText>
-      </ThemedView>
-
-      {/* Quick Stats Section */}
-      <ThemedView style={styles.statsContainer}>
-        <ThemedView style={styles.statCard}>
-          <ThemedText style={styles.statValue}>87%</ThemedText>
-          <ThemedText style={styles.statLabel}>AI Accuracy</ThemedText>
-        </ThemedView>
-        <ThemedView style={styles.statCard}>
-          <ThemedText style={styles.statValue}>{betCount}</ThemedText>
-          <ThemedText style={styles.statLabel}>Bets Analyzed</ThemedText>
-        </ThemedView>
-      </ThemedView>
-
-      {/* Recent Winners */}
-      <RecentWinners />
-
-      {/* Today's Hot Picks */}
-      <ThemedView style={styles.section}>
-        <ThemedText style={styles.sectionTitle}>🔥 Today's Hot Picks</ThemedText>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.picksScroll}>
-          {hotPicks.map((pick, index) => (
-            <ThemedView key={index} style={styles.pickCard}>
-              <ThemedText style={styles.pickPlayer}>{pick.player}</ThemedText>
-              <ThemedText style={styles.pickStat}>{pick.stat}</ThemedText>
-              <ThemedView style={styles.confidenceBar}>
-                <ThemedText style={styles.pickConfidence}>{pick.confidence}% Confident</ThemedText>
+    <>
+      <ScrollView style={styles.container}>
+        {/* Header */}
+        <ThemedView style={styles.header}>
+          <ThemedView style={styles.logoContainer}>
+            <MaterialCommunityIcons name="trophy" size={32} color="#1E90FF" />
+            <ThemedText style={styles.logoText}>SPORTSAI</ThemedText>
+          </ThemedView>
+          
+          <TouchableOpacity 
+            style={styles.notificationButton}
+            onPress={() => setShowNotifications(true)}
+          >
+            <MaterialCommunityIcons 
+              name="bell-outline" 
+              size={24} 
+              color="#FFFFFF" 
+            />
+            {notifications.some(n => !n.read) && (
+              <ThemedView style={styles.notificationBadge}>
+                <ThemedText style={styles.notificationBadgeText}>
+                  {notifications.filter(n => !n.read).length}
+                </ThemedText>
               </ThemedView>
-            </ThemedView>
-          ))}
-        </ScrollView>
-      </ThemedView>
+            )}
+          </TouchableOpacity>
+        </ThemedView>
 
-      {/* AI Insights */}
-      <ThemedView style={styles.insightsContainer}>
-        <ThemedText style={styles.insightTitle}>🤖 AI Daily Report</ThemedText>
-        <ThemedText style={styles.insightText}>
-          Today's games favor over bets in NBA points (67% confidence) and NHL assists (72% confidence).
-          Market inefficiencies detected in MLB strikeout props.
-        </ThemedText>
-      </ThemedView>
+        {/* Profile Section */}
+        <ThemedView style={styles.profileSection}>
+          <ThemedText style={styles.profileName}>Welcome!</ThemedText>
+        </ThemedView>
 
-    </ScrollView>
+        {/* Quick Stats Section */}
+        <ThemedView style={styles.statsContainer}>
+          <ThemedView style={styles.statCard}>
+            <ThemedText style={styles.statValue}>87%</ThemedText>
+            <ThemedText style={styles.statLabel}>AI Accuracy</ThemedText>
+          </ThemedView>
+          <ThemedView style={styles.statCard}>
+            <ThemedText style={styles.statValue}>{betCount}</ThemedText>
+            <ThemedText style={styles.statLabel}>Bets Analyzed</ThemedText>
+          </ThemedView>
+        </ThemedView>
+
+        {/* Recent Winners */}
+        <RecentWinners />
+
+        {/* Today's Hot Picks */}
+        <ThemedView style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>🔥 Today's Hot Picks</ThemedText>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.picksScroll}>
+            {hotPicks.map((pick, index) => (
+              <ThemedView key={index} style={styles.pickCard}>
+                <ThemedText style={styles.pickPlayer}>{pick.player}</ThemedText>
+                <ThemedText style={styles.pickStat}>{pick.stat}</ThemedText>
+                <ThemedView style={styles.confidenceBar}>
+                  <ThemedText style={styles.pickConfidence}>{pick.confidence}% Confident</ThemedText>
+                </ThemedView>
+              </ThemedView>
+            ))}
+          </ScrollView>
+        </ThemedView>
+
+        {/* AI Insights */}
+        <ThemedView style={styles.insightsContainer}>
+          <ThemedText style={styles.insightTitle}>🤖 AI Daily Report</ThemedText>
+          <ThemedText style={styles.insightText}>
+            Today's games favor over bets in NBA points (67% confidence) and NHL assists (72% confidence).
+            Market inefficiencies detected in MLB strikeout props.
+          </ThemedText>
+        </ThemedView>
+      </ScrollView>
+
+      <NotificationsModal
+        visible={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        notifications={notifications}
+        onNotificationPress={handleNotificationPress}
+        loading={notificationsLoading}
+      />
+    </>
   );
 }
 
@@ -406,5 +685,103 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000010',
+  },
+  notificationButton: {
+    padding: 8,
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#FF3B30',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  notificationModal: {
+    backgroundColor: '#000010',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '90%',
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: '#FFFFFF20',
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+  },
+  notificationHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#FFFFFF30',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    paddingTop: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFFFFF10',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  notificationList: {
+    padding: 16,
+  },
+  notificationItem: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: '#FFFFFF05',
+    borderWidth: 1,
+    borderColor: '#FFFFFF10',
+  },
+  unreadNotification: {
+    backgroundColor: '#FFFFFF08',
+    borderColor: '#FFFFFF20',
+  },
+  notificationTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  notificationMessage: {
+    fontSize: 14,
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  notificationTime: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  emptyState: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    opacity: 0.6,
   },
 });

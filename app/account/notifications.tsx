@@ -1,13 +1,16 @@
-import { View, TouchableOpacity, StyleSheet, Platform, ScrollView, Switch } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Platform, ScrollView, Switch, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from 'react-native';
 import Colors from '@/constants/Colors';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { useAuth } from '../context/AuthContext';
 
-interface NotificationOption {
+interface NotificationPreference {
   id: string;
   title: string;
   description: string;
@@ -17,8 +20,10 @@ interface NotificationOption {
 export default function NotificationsScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
 
-  const [notifications, setNotifications] = useState<NotificationOption[]>([
+  const [notifications, setNotifications] = useState<NotificationPreference[]>([
     {
       id: 'predictions',
       title: 'Game Predictions',
@@ -26,9 +31,9 @@ export default function NotificationsScreen() {
       enabled: true,
     },
     {
-      id: 'results',
-      title: 'Game Results',
-      description: 'Receive updates when games end',
+      id: 'expert_picks',
+      title: 'Expert Picks',
+      description: 'Get notified based on expert picks',
       enabled: true,
     },
     {
@@ -41,23 +46,86 @@ export default function NotificationsScreen() {
       id: 'news',
       title: 'Sports News',
       description: 'Stay updated with relevant sports news',
-      enabled: false,
+      enabled: true,
     },
     {
       id: 'promotions',
       title: 'Promotions',
       description: 'Receive special offers and updates',
-      enabled: false,
+      enabled: true,
     },
   ]);
 
-  const toggleNotification = (id: string) => {
-    setNotifications(notifications.map(notification => 
+  // Load user's notification preferences
+  useEffect(() => {
+    const loadPreferences = async () => {
+      if (!user) return;
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          if (userData.notificationPreferences) {
+            setNotifications(prev => prev.map(notification => ({
+              ...notification,
+              enabled: userData.notificationPreferences[notification.id] ?? true
+            })));
+          } else {
+            const allEnabledPreferences = notifications.reduce((acc, curr) => ({
+              ...acc,
+              [curr.id]: true
+            }), {});
+
+            await updateDoc(doc(db, 'users', user.uid), {
+              notificationPreferences: allEnabledPreferences
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading notification preferences:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPreferences();
+  }, [user]);
+
+  const toggleNotification = async (id: string) => {
+    if (!user) return;
+
+    const updatedNotifications = notifications.map(notification => 
       notification.id === id 
         ? { ...notification, enabled: !notification.enabled }
         : notification
-    ));
+    );
+    
+    setNotifications(updatedNotifications);
+
+    try {
+      // Convert notifications array to object for storage
+      const preferencesObject = updatedNotifications.reduce((acc, curr) => ({
+        ...acc,
+        [curr.id]: curr.enabled
+      }), {});
+
+      await updateDoc(doc(db, 'users', user.uid), {
+        notificationPreferences: preferencesObject
+      });
+    } catch (error) {
+      console.error('Error updating notification preferences:', error);
+      // Revert on error
+      setNotifications(notifications);
+    }
   };
+
+  if (loading) {
+    return (
+      <ThemedView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1E90FF" />
+      </ThemedView>
+    );
+  }
 
   return (
     <ScrollView 
@@ -148,5 +216,11 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     marginTop: 24,
     fontSize: 14,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000010',
   },
 }); 
