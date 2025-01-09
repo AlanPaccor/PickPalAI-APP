@@ -15,6 +15,8 @@ import Animated, {
   useAnimatedStyle,
   Easing,
 } from 'react-native-reanimated';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
 // Mock data
 const recentWinners = [
@@ -94,6 +96,26 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const { user } = useAuth();
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!user) return;
+      
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userData = userDoc.data();
+        
+        if (!userData?.subscription?.plan) {
+          router.replace('/auth/subscription');
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        router.replace('/auth/subscription');
+      }
+    };
+
+    checkSubscription();
+  }, [user]);
 
   return (
     <ScrollView style={styles.container}>

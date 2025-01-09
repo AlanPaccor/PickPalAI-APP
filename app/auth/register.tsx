@@ -1,13 +1,15 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useState, useCallback, useEffect } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { router } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
-import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
 
 interface PasswordStrength {
-  score: number; // 0 = bad, 1 = medium, 2 = good
+  score: number;
   color: string;
   label: string;
 }
@@ -78,7 +80,7 @@ export default function Register() {
 
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      router.replace('/(tabs)');
+      router.replace('/auth/subscription');
     } catch (err: any) {
       let message = 'Failed to create account.';
       if (err.code === 'auth/email-already-in-use') {
@@ -103,24 +105,31 @@ export default function Register() {
       style={styles.container}
       entering={FadeIn.duration(500)}
     >
-      <Text style={styles.title}>
+      <ThemedText type="title" style={styles.title}>
         Register
-      </Text>
-      {error && <Text style={styles.error}>{error}</Text>}
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        editable={!loading}
-      />
+      </ThemedText>
+      
+      {error && <ThemedText style={styles.error}>{error}</ThemedText>}
+      
+      <ThemedView style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#FFFFFF50"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          editable={!loading}
+        />
+      </ThemedView>
+
       <View>
-        <View style={styles.passwordContainer}>
+        <ThemedView style={styles.inputContainer}>
           <TextInput
-            style={styles.passwordInput}
+            style={styles.input}
             placeholder="Password"
+            placeholderTextColor="#FFFFFF50"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
@@ -130,36 +139,37 @@ export default function Register() {
             style={styles.eyeButton}
             onPress={() => setShowPassword(!showPassword)}
           >
-            <MaterialIcons 
-              name={showPassword ? "visibility" : "visibility-off"} 
+            <MaterialCommunityIcons 
+              name={showPassword ? "eye-off" : "eye"}
               size={24} 
-              color="#666"
+              color="#FFFFFF50"
             />
           </TouchableOpacity>
-        </View>
+        </ThemedView>
         
         {password.length > 0 && (
-          <View style={styles.strengthIndicator}>
+          <ThemedView style={styles.strengthIndicator}>
             <View style={[styles.strengthBar, { backgroundColor: passwordStrength.color }]} />
-            <Text style={[styles.strengthText, { color: passwordStrength.color }]}>
+            <ThemedText style={[styles.strengthText, { color: passwordStrength.color }]}>
               Password Strength: {passwordStrength.label}
-            </Text>
-          </View>
+            </ThemedText>
+          </ThemedView>
         )}
         
-        <Text style={styles.passwordRequirements}>
+        <ThemedText style={styles.passwordRequirements}>
           Password must contain:{'\n'}
           • At least 8 characters{'\n'}
           • Upper and lowercase letters{'\n'}
           • Numbers{'\n'}
           • Special characters (!@#$%^&*(),.?":{}\|&lt;&gt;)
-        </Text>
+        </ThemedText>
       </View>
 
-      <View style={styles.passwordContainer}>
+      <ThemedView style={styles.inputContainer}>
         <TextInput
-          style={styles.passwordInput}
+          style={styles.input}
           placeholder="Confirm Password"
+          placeholderTextColor="#FFFFFF50"
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secureTextEntry={!showConfirmPassword}
@@ -169,13 +179,13 @@ export default function Register() {
           style={styles.eyeButton}
           onPress={() => setShowConfirmPassword(!showConfirmPassword)}
         >
-          <MaterialIcons 
-            name={showConfirmPassword ? "visibility" : "visibility-off"} 
+          <MaterialCommunityIcons 
+            name={showConfirmPassword ? "eye-off" : "eye"}
             size={24} 
-            color="#666"
+            color="#FFFFFF50"
           />
         </TouchableOpacity>
-      </View>
+      </ThemedView>
 
       <TouchableOpacity 
         style={[
@@ -189,16 +199,14 @@ export default function Register() {
         {loading ? (
           <ActivityIndicator color="white" />
         ) : (
-          <Text style={styles.buttonText}>Register</Text>
+          <ThemedText style={styles.buttonText}>Register</ThemedText>
         )}
       </TouchableOpacity>
+
       <TouchableOpacity onPress={navigateToLogin}>
-        <Animated.Text 
-          style={styles.link}
-          entering={FadeIn.delay(400)}
-        >
+        <ThemedText style={styles.link}>
           Already have an account? Login
-        </Animated.Text>
+        </ThemedText>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -209,77 +217,77 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: 'center',
-    backgroundColor: 'white',
+    backgroundColor: '#000010',
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
   },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFFFFF20',
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: '#00000010',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
+    flex: 1,
+    color: '#FFFFFF',
+    padding: 16,
+    fontSize: 16,
   },
   button: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 5,
+    backgroundColor: '#0A84FF',
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
+    marginTop: 8,
   },
   buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
   },
   error: {
-    color: 'red',
-    marginBottom: 10,
+    color: '#FF453A',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   link: {
-    marginTop: 15,
-    color: '#007AFF',
+    marginTop: 24,
     textAlign: 'center',
+    color: '#0A84FF',
+    fontSize: 16,
   },
   buttonDisabled: {
     opacity: 0.7,
   },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  passwordInput: {
-    flex: 1,
-    padding: 10,
-  },
   eyeButton: {
-    padding: 10,
+    padding: 16,
   },
   strengthIndicator: {
-    marginTop: 5,
-    marginBottom: 10,
+    marginTop: 8,
+    marginBottom: 16,
   },
   strengthBar: {
     height: 4,
     borderRadius: 2,
     width: '100%',
-    marginBottom: 5,
+    marginBottom: 8,
   },
   strengthText: {
-    fontSize: 12,
+    fontSize: 14,
     textAlign: 'center',
   },
   passwordRequirements: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 15,
-    marginTop: 5,
-    lineHeight: 18,
+    fontSize: 14,
+    color: '#FFFFFF80',
+    marginBottom: 16,
+    lineHeight: 20,
   },
 }); 

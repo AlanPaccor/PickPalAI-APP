@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet, Platform, ScrollView, Switch } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Platform, ScrollView, Switch, Modal } from 'react-native';
 import { auth } from '../config/firebase';
 import { signOut } from 'firebase/auth';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,6 +8,8 @@ import { useColorScheme } from 'react-native';
 import Colors from '@/constants/Colors';
 import { MaterialCommunityIconName } from '@/types/icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { useState } from 'react';
 
 interface MenuItem {
   icon: MaterialCommunityIconName;
@@ -20,11 +22,18 @@ interface MenuSection {
   items: MenuItem[];
 }
 
+interface ModalContent {
+  title: string;
+  content: string;
+}
+
 export default function AccountScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const user = auth.currentUser;
   const insets = useSafeAreaInsets();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalContent, setModalContent] = useState<ModalContent>({ title: '', content: '' });
 
   const handleLogout = async () => {
     try {
@@ -34,29 +43,58 @@ export default function AccountScreen() {
     }
   };
 
+  const showModal = (title: string, content: string) => {
+    setModalContent({ title, content });
+    setModalVisible(true);
+  };
+
   const menuItems: MenuSection[] = [
     {
       title: 'Account Settings',
       items: [
-        { icon: 'account-edit-outline', label: 'Edit Profile', onPress: () => {} },
-        { icon: 'bell-outline', label: 'Notifications', onPress: () => {} },
-        { icon: 'shield-lock-outline', label: 'Privacy & Security', onPress: () => {} },
+        { icon: 'account-edit-outline', label: 'Edit Plan', onPress: () => router.push('/account/edit-plan') },
+        { icon: 'bell-outline', label: 'Notifications', onPress: () => router.push('/account/notifications') },
+        { icon: 'shield-lock-outline', label: 'Privacy & Security', onPress: () => router.push('/account/privacy') },
       ]
     },
     {
       title: 'Preferences',
       items: [
-        { icon: 'chart-line', label: 'Betting Preferences', onPress: () => {} },
-        { icon: 'currency-usd', label: 'Currency Settings', onPress: () => {} },
-        { icon: 'translate', label: 'Language', onPress: () => {} },
+        { 
+          icon: 'chart-line', 
+          label: 'Betting Preferences', 
+          onPress: () => router.push('/account/betting-preferences')
+        },
+        { 
+          icon: 'currency-usd', 
+          label: 'Currency Settings', 
+          onPress: () => router.push('/account/currency-settings')
+        },
+        { 
+          icon: 'translate', 
+          label: 'Language', 
+          onPress: () => router.push('/account/language')
+        },
       ]
     },
     {
       title: 'Support',
       items: [
-        { icon: 'help-circle-outline', label: 'Help Center', onPress: () => {} },
-        { icon: 'message-text-outline', label: 'Contact Support', onPress: () => {} },
-        { icon: 'information-outline', label: 'About', onPress: () => {} },
+        { 
+          icon: 'help-circle-outline', 
+          label: 'Help Center', 
+          onPress: () => showModal('Help Center', 'Need help? Contact our support team at support@example.com or visit our FAQ page.') 
+        },
+        { 
+          icon: 'message-text-outline', 
+          label: 'Contact Support', 
+          onPress: () => showModal('Contact Support', 'Our support team is available 24/7. Email: support@example.com\nPhone: 1-800-EXAMPLE') 
+        },
+        { 
+          icon: 'information-outline', 
+          label: 'About', 
+          onPress: () => showModal('About', 'Version 1.0.0\n\nDeveloped by Example Team\n\n© 2024 Example Inc.') 
+        },
       ]
     }
   ];
@@ -74,10 +112,10 @@ export default function AccountScreen() {
       <ThemedView style={styles.statsContainer}>
         <ThemedView style={styles.statItem}>
           <ThemedText type="defaultSemiBold">0</ThemedText>
-          <ThemedText>Bets Placed</ThemedText>
+          <ThemedText>Bets Analyzed</ThemedText>
         </ThemedView>
         <ThemedView style={styles.statItem}>
-          <ThemedText type="defaultSemiBold">0%</ThemedText>
+          <ThemedText type="defaultSemiBold">89%</ThemedText>
           <ThemedText>Win Rate</ThemedText>
         </ThemedView>
         <ThemedView style={styles.statItem}>
@@ -131,6 +169,30 @@ export default function AccountScreen() {
         <MaterialCommunityIcons name="logout" size={24} color="white" />
         <ThemedText style={styles.logoutText}>Logout</ThemedText>
       </TouchableOpacity>
+
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setModalVisible(false)}
+        >
+          <ThemedView style={styles.modalContent}>
+            <ThemedText type="title" style={styles.modalTitle}>{modalContent.title}</ThemedText>
+            <ThemedText style={styles.modalText}>{modalContent.content}</ThemedText>
+            <TouchableOpacity 
+              style={styles.modalButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <ThemedText style={styles.modalButtonText}>Close</ThemedText>
+            </TouchableOpacity>
+          </ThemedView>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 }
@@ -223,5 +285,39 @@ const styles = StyleSheet.create({
   logoutText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  modalContent: {
+    backgroundColor: '#000010',
+    borderRadius: 12,
+    padding: 24,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#FFFFFF20',
+  },
+  modalTitle: {
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalText: {
+    marginBottom: 24,
+    lineHeight: 24,
+  },
+  modalButton: {
+    backgroundColor: '#0A84FF',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
   },
 }); 

@@ -5,18 +5,15 @@ export default function AuthLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        header: () => null,
-        navigationBarHidden: true,
+        contentStyle: {
+          backgroundColor: '#0A0A0A',
+        },
+        animation: 'fade',
       }}
     >
-      <Stack.Screen 
-        name="login"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen 
-        name="register"
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="login" />
+      <Stack.Screen name="register" />
+      <Stack.Screen name="subscription" />
     </Stack>
   );
 } 

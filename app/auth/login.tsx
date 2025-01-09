@@ -1,11 +1,14 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, useColorScheme } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useState, useCallback } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { auth, db } from '../config/firebase';
 import { router } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
-import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import Colors from '@/constants/Colors';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -13,8 +16,6 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
 
   const handleLogin = async () => {
     if (loading) return;
@@ -23,9 +24,13 @@ export default function Login() {
     setError('');
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.replace('/(tabs)');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('User logged in:', userCredential.user.uid);
+      
+      // The AuthContext will handle the routing based on subscription status
+      // No need to manually route here
     } catch (err: any) {
+      console.error('Login error:', err);
       let message = 'Failed to login. Please check your credentials.';
       if (err.code === 'auth/invalid-email') {
         message = 'Invalid email address.';
@@ -46,29 +51,33 @@ export default function Login() {
 
   return (
     <Animated.View 
-      style={[
-        styles.container,
-        { backgroundColor: theme.background }
-      ]}
+      style={styles.container}
       entering={FadeIn.duration(500)}
     >
-      <Text style={styles.title}>
+      <ThemedText type="title" style={styles.title}>
         Login
-      </Text>
-      {error && <Text style={styles.error}>{error}</Text>}
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        editable={!loading}
-      />
-      <View style={styles.passwordContainer}>
+      </ThemedText>
+      
+      {error && <ThemedText style={styles.error}>{error}</ThemedText>}
+      
+      <ThemedView style={styles.inputContainer}>
         <TextInput
-          style={styles.passwordInput}
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#FFFFFF50"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          editable={!loading}
+        />
+      </ThemedView>
+
+      <ThemedView style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
           placeholder="Password"
+          placeholderTextColor="#FFFFFF50"
           value={password}
           onChangeText={setPassword}
           secureTextEntry={!showPassword}
@@ -78,38 +87,30 @@ export default function Login() {
           style={styles.eyeButton}
           onPress={() => setShowPassword(!showPassword)}
         >
-          <MaterialIcons 
-            name={showPassword ? "visibility" : "visibility-off"} 
+          <MaterialCommunityIcons 
+            name={showPassword ? "eye-off" : "eye"} 
             size={24} 
-            color="#666"
+            color="#FFFFFF50"
           />
         </TouchableOpacity>
-      </View>
+      </ThemedView>
+
       <TouchableOpacity 
-        style={[
-          styles.button, 
-          { backgroundColor: theme.tint },
-          loading && styles.buttonDisabled
-        ]} 
+        style={[styles.button, loading && styles.buttonDisabled]} 
         onPress={handleLogin}
         disabled={loading}
       >
         {loading ? (
           <ActivityIndicator color="white" />
         ) : (
-          <Text style={styles.buttonText}>Login</Text>
+          <ThemedText style={styles.buttonText}>Login</ThemedText>
         )}
       </TouchableOpacity>
+
       <TouchableOpacity onPress={navigateToRegister}>
-        <Animated.Text 
-          style={[
-            styles.link,
-            { color: theme.tint }
-          ]}
-          entering={FadeIn.delay(400)}
-        >
+        <ThemedText style={styles.link}>
           Don't have an account? Register
-        </Animated.Text>
+        </ThemedText>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -121,52 +122,56 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: 'center',
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    backgroundColor: '#000010',
   },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFFFFF20',
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: '#00000010',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
+    flex: 1,
+    color: '#FFFFFF',
+    padding: 16,
+    fontSize: 16,
   },
   button: {
-    padding: 15,
-    borderRadius: 5,
+    backgroundColor: '#0A84FF',
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
+    marginTop: 8,
   },
   buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
   },
   error: {
-    color: 'red',
-    marginBottom: 10,
+    color: '#FF453A',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   link: {
-    marginTop: 15,
+    marginTop: 24,
     textAlign: 'center',
+    color: '#0A84FF',
+    fontSize: 16,
   },
   buttonDisabled: {
     opacity: 0.7,
   },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  passwordInput: {
-    flex: 1,
-    padding: 10,
-  },
   eyeButton: {
-    padding: 10,
+    padding: 16,
   },
 }); 

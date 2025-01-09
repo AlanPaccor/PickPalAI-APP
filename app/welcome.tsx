@@ -1,108 +1,155 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function Welcome() {
+export default function WelcomeScreen() {
+  const insets = useSafeAreaInsets();
+
   return (
-    <Animated.View 
-      style={styles.container}
-      entering={FadeIn.duration(500)}
-    >
-      <View style={styles.content}>
-        <Text style={styles.logoText}>Aora</Text>
-        
-        <View style={styles.imageContainer}>
-          <Image 
-            source={{ 
-              uri: 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?ixlib=rb-4.0.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80'
-            }} 
-            style={styles.image}
-            resizeMode="cover"
-          />
-          <Image 
-            source={{ 
-              uri: 'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?ixlib=rb-4.0.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80'
-            }} 
-            style={styles.image}
-            resizeMode="cover"
-          />
-        </View>
-
-        <Text style={styles.title}>Discover Endless</Text>
-        <Text style={styles.titleHighlight}>Possibilities with Aora</Text>
-        
-        <Text style={styles.subtitle}>
-          Where creativity meets innovation: embark on a journey of limitless exploration with Aora
-        </Text>
-      </View>
-
-      <TouchableOpacity 
-        style={styles.button} 
-        onPress={() => router.push('/auth/register')}
+    <ThemedView style={styles.container}>
+      {/* Logo and Title Section */}
+      <Animated.View 
+        style={styles.headerSection}
+        entering={FadeIn.delay(200).duration(1000)}
       >
-        <Text style={styles.buttonText}>Continue with Email</Text>
-      </TouchableOpacity>
-    </Animated.View>
+        <MaterialCommunityIcons 
+          name="chart-line" 
+          size={80} 
+          color="#0A84FF" 
+        />
+        <ThemedText type="title" style={styles.title}>
+          Welcome to PredictPro
+        </ThemedText>
+      </Animated.View>
+
+      {/* Features Section */}
+      <Animated.View 
+        style={styles.featuresSection}
+        entering={FadeIn.delay(400).duration(1000)}
+      >
+        <FeatureItem 
+          icon="chart-bell-curve" 
+          text="Get AI-powered sports predictions"
+        />
+        <FeatureItem 
+          icon="chart-timeline-variant" 
+          text="Track performance in real-time"
+        />
+        <FeatureItem 
+          icon="robot-outline" 
+          text="Chat with our AI assistant"
+        />
+        <FeatureItem 
+          icon="bell-outline" 
+          text="Receive instant notifications"
+        />
+      </Animated.View>
+
+      {/* Buttons Section */}
+      <Animated.View 
+        style={[
+          styles.buttonSection,
+          { paddingBottom: insets.bottom + 20 }
+        ]}
+        entering={SlideInDown.delay(600).duration(800)}
+      >
+        <TouchableOpacity 
+          style={styles.registerButton}
+          onPress={() => router.push('/auth/register')}
+        >
+          <ThemedText style={styles.buttonText}>
+            Create Account
+          </ThemedText>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.loginButton}
+          onPress={() => router.push('/auth/login')}
+        >
+          <ThemedText style={styles.loginText}>
+            Already have an account? Login
+          </ThemedText>
+        </TouchableOpacity>
+      </Animated.View>
+    </ThemedView>
+  );
+}
+
+function FeatureItem({ icon, text }: { icon: string, text: string }) {
+  return (
+    <View style={styles.featureItem}>
+      <MaterialCommunityIcons 
+        name={icon} 
+        size={24} 
+        color="#0A84FF" 
+      />
+      <ThemedText style={styles.featureText}>
+        {text}
+      </ThemedText>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
-    padding: 20,
+    backgroundColor: '#000010',
+    paddingHorizontal: 20,
   },
-  content: {
+  headerSection: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  logoText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 30,
-  },
-  imageContainer: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 30,
-  },
-  image: {
-    width: 150,
-    height: 200,
-    borderRadius: 15,
+    gap: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: 'white',
     textAlign: 'center',
   },
-  titleHighlight: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFA500',
-    marginBottom: 15,
-    textAlign: 'center',
+  featuresSection: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 24,
   },
-  subtitle: {
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: '#00000010',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFFFFF20',
+  },
+  featureText: {
     fontSize: 16,
-    color: '#888',
-    textAlign: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 20,
+    opacity: 0.9,
   },
-  button: {
-    backgroundColor: '#FFA500',
-    padding: 15,
-    borderRadius: 25,
-    width: '100%',
+  buttonSection: {
+    gap: 16,
+    marginTop: 32,
+  },
+  registerButton: {
+    backgroundColor: '#0A84FF',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
   },
   buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'center',
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  loginButton: {
+    alignItems: 'center',
+  },
+  loginText: {
+    color: '#0A84FF',
     fontSize: 16,
   },
 }); 
