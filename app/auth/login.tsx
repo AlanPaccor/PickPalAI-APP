@@ -1,5 +1,5 @@
 import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { router } from 'expo-router';
@@ -9,6 +9,7 @@ import Colors from '@/constants/Colors';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { doc, getDoc } from 'firebase/firestore';
+import * as SecureStore from 'expo-secure-store';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -16,6 +17,17 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  useEffect(() => {
+    const checkRememberMe = async () => {
+      const savedRememberMe = await SecureStore.getItemAsync('rememberMe');
+      if (savedRememberMe === 'true') {
+        setRememberMe(true);
+      }
+    };
+    checkRememberMe();
+  }, []);
 
   const handleLogin = async () => {
     if (loading) return;
@@ -25,6 +37,17 @@ export default function Login() {
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      if (rememberMe) {
+        await SecureStore.setItemAsync('rememberMe', 'true');
+        await SecureStore.setItemAsync('userEmail', email);
+        await SecureStore.setItemAsync('userPassword', password);
+      } else {
+        await SecureStore.deleteItemAsync('rememberMe');
+        await SecureStore.deleteItemAsync('userEmail');
+        await SecureStore.deleteItemAsync('userPassword');
+      }
+      
       console.log('User logged in:', userCredential.user.uid);
       
       // The AuthContext will handle the routing based on subscription status
@@ -48,6 +71,10 @@ export default function Login() {
   const navigateToRegister = useCallback(() => {
     router.push('/auth/register');
   }, []);
+
+  const toggleRememberMe = () => {
+    setRememberMe(!rememberMe);
+  };
 
   return (
     <Animated.View 
@@ -94,6 +121,18 @@ export default function Login() {
           />
         </TouchableOpacity>
       </ThemedView>
+
+      <TouchableOpacity 
+        style={styles.rememberMeContainer} 
+        onPress={toggleRememberMe}
+      >
+        <MaterialCommunityIcons 
+          name={rememberMe ? "checkbox-marked" : "checkbox-blank-outline"} 
+          size={24} 
+          color="#0A84FF" 
+        />
+        <ThemedText style={styles.rememberMeText}>Remember Me</ThemedText>
+      </TouchableOpacity>
 
       <TouchableOpacity 
         style={[styles.button, loading && styles.buttonDisabled]} 
@@ -173,5 +212,16 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     padding: 16,
+  },
+  rememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: -8,
+  },
+  rememberMeText: {
+    marginLeft: 8,
+    color: '#FFFFFF90',
+    fontSize: 14,
   },
 }); 

@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../config/firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, User, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import * as SecureStore from 'expo-secure-store';
 
 interface AuthContextType {
   user: User | null;
@@ -82,6 +83,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const rememberMe = await SecureStore.getItemAsync('rememberMe');
+        
+        if (rememberMe === 'true') {
+          const savedEmail = await SecureStore.getItemAsync('userEmail');
+          const savedPassword = await SecureStore.getItemAsync('userPassword');
+          
+          if (savedEmail && savedPassword) {
+            await signInWithEmailAndPassword(auth, savedEmail, savedPassword);
+          }
+        }
+      } catch (error) {
+        console.error('Auto-login error:', error);
+      }
+    };
+
+    initializeAuth();
   }, []);
 
   const value = {

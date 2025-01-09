@@ -10,6 +10,7 @@ import { MaterialCommunityIconName } from '@/types/icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useBetCount } from '../hooks/useBetCount';
 
 interface MenuItem {
   icon: MaterialCommunityIconName;
@@ -34,6 +35,7 @@ export default function AccountScreen() {
   const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
   const [modalContent, setModalContent] = useState<ModalContent>({ title: '', content: '' });
+  const { betCount } = useBetCount();
 
   const handleLogout = async () => {
     try {
@@ -111,7 +113,7 @@ export default function AccountScreen() {
 
       <ThemedView style={styles.statsContainer}>
         <ThemedView style={styles.statItem}>
-          <ThemedText type="defaultSemiBold">0</ThemedText>
+          <ThemedText type="defaultSemiBold">{betCount}</ThemedText>
           <ThemedText>Bets Analyzed</ThemedText>
         </ThemedView>
         <ThemedView style={styles.statItem}>

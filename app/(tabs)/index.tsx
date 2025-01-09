@@ -1,4 +1,4 @@
-import { StyleSheet, Platform, TouchableOpacity, ScrollView, StatusBar, View, LayoutChangeEvent } from 'react-native';
+import { StyleSheet, Platform, TouchableOpacity, ScrollView, StatusBar, View, LayoutChangeEvent, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColorScheme } from 'react-native';
 import Colors from '@/constants/Colors';
@@ -17,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { useBetCount } from '../hooks/useBetCount';
 
 // Mock data
 const recentWinners = [
@@ -96,6 +97,8 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const { betCount } = useBetCount();
 
   useEffect(() => {
     const checkSubscription = async () => {
@@ -111,11 +114,21 @@ export default function HomeScreen() {
       } catch (error) {
         console.error('Error checking subscription:', error);
         router.replace('/auth/subscription');
+      } finally {
+        setIsLoading(false);
       }
     };
 
     checkSubscription();
   }, [user]);
+
+  if (isLoading) {
+    return (
+      <ThemedView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1E90FF" />
+      </ThemedView>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -139,7 +152,7 @@ export default function HomeScreen() {
           <ThemedText style={styles.statLabel}>AI Accuracy</ThemedText>
         </ThemedView>
         <ThemedView style={styles.statCard}>
-          <ThemedText style={styles.statValue}>24</ThemedText>
+          <ThemedText style={styles.statValue}>{betCount}</ThemedText>
           <ThemedText style={styles.statLabel}>Bets Analyzed</ThemedText>
         </ThemedView>
       </ThemedView>
@@ -385,5 +398,11 @@ const styles = StyleSheet.create({
   winnerRow: {
     flexDirection: 'row',
     gap: 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000010',
   },
 });

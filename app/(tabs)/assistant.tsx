@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
+import { db } from '../config/firebase';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { useAuth } from '../context/AuthContext';
 
 const OPENAI_API_KEY = Constants.expoConfig?.extra?.OPENAI_API_KEY;
 
@@ -16,6 +19,7 @@ export default function AssistantScreen() {
   const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (extractedText) {
@@ -28,6 +32,22 @@ export default function AssistantScreen() {
       setIsLoading(true);
       const decodedText = decodeURIComponent(text);
       
+      if (user) {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (userDoc.exists()) {
+          const currentBets = userDoc.data().betsAnalyzed || 0;
+          await updateDoc(userDocRef, {
+            betsAnalyzed: currentBets + 1
+          });
+        } else {
+          await setDoc(userDocRef, {
+            betsAnalyzed: 1
+          });
+        }
+      }
+
       const systemMessage = type === 'game' 
         ? `You are a sports prediction analyst. When analyzing game predictions:
           1. Start with a brief overview of the prediction
