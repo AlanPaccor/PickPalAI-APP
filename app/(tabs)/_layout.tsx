@@ -19,7 +19,7 @@ function AssistantIcon({ color, focused }: AssistantIconProps) {
 
   const animatedStyles = useAnimatedStyle(() => {
     return {
-      backgroundColor: withTiming(focused ? theme.tint : theme.background, {
+      backgroundColor: withTiming(focused ? '#1E90FF20' : '#000010', {
         duration: 200,
       }),
     };
@@ -30,14 +30,14 @@ function AssistantIcon({ color, focused }: AssistantIconProps) {
       styles.assistantIconContainer,
       {
         borderWidth: 2,
-        borderColor: theme.tint,
+        borderColor: '#1E90FF20',
       },
       animatedStyles
     ]}>
       <MaterialIcons 
         name="chat" 
         size={32} 
-        color={focused ? '#FFFFFF' : theme.tint}
+        color={focused ? '#FFFFFF' : '#1E90FF'}
       />
     </Animated.View>
   );
@@ -61,7 +61,7 @@ export default function TabLayout() {
             borderTopWidth: 0,
             height: 60,
             paddingBottom: 5,
-            backgroundColor: '#0A0A0A',
+            backgroundColor: '#000010',
             shadowColor: '#000',
             shadowOffset: {
               width: 0,
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
-    // Add shadow for iOS
+    backgroundColor: '#000010',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -138,7 +138,6 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    // Add elevation for Android
     elevation: 5,
   },
 });
