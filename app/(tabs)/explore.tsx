@@ -20,16 +20,16 @@ const SPORTS: Array<{
   icon: IconName;
   color: string;
 }> = [
-  { id: 'nfl', name: 'NFL', icon: 'football', color: '#6B3FA0' },
-  { id: 'nba', name: 'NBA', icon: 'basketball', color: '#C9082A' },
-  { id: 'nhl', name: 'NHL', icon: 'hockey-puck', color: '#004687' },
-  { id: 'mlb', name: 'MLB', icon: 'baseball-bat', color: '#041E42' },
-  { id: 'nfl4q', name: 'NFL4Q', icon: 'football', color: '#17B169' },
-  { id: 'cfb', name: 'CFB', icon: 'football', color: '#FF6B00' },
-  { id: 'nba4q', name: 'NBA4Q', icon: 'basketball', color: '#1E90FF' },
-  { id: 'soccer', name: 'Soccer', icon: 'soccer', color: '#2E8B57' },
-  { id: 'tennis', name: 'Tennis', icon: 'tennis', color: '#FFD700' },
-  { id: 'mma', name: 'MMA', icon: 'boxing-glove', color: '#DC143C' },
+  { id: 'nfl', name: 'NFL', icon: 'football', color: '#1E3A5F' },
+  { id: 'nba', name: 'NBA', icon: 'basketball', color: '#1E3A5F' },
+  { id: 'nhl', name: 'NHL', icon: 'hockey-puck', color: '#1E3A5F' },
+  { id: 'mlb', name: 'MLB', icon: 'baseball-bat', color: '#1E3A5F' },
+  { id: 'nfl4q', name: 'NFL4Q', icon: 'football', color: '#1E3A5F' },
+  { id: 'cfb', name: 'CFB', icon: 'football', color: '#1E3A5F' },
+  { id: 'nba4q', name: 'NBA4Q', icon: 'basketball', color: '#1E3A5F' },
+  { id: 'soccer', name: 'Soccer', icon: 'soccer', color: '#1E3A5F' },
+  { id: 'tennis', name: 'Tennis', icon: 'tennis', color: '#1E3A5F' },
+  { id: 'mma', name: 'MMA', icon: 'boxing-glove', color: '#1E3A5F' },
 ];
 
 const FILTERS = [
@@ -470,7 +470,7 @@ export default function ExploreScreen() {
               style={[
                 styles.sportTab,
                 selectedSport === sport.id && styles.sportTabSelected,
-                { backgroundColor: selectedSport === sport.id ? sport.color : '#1E1E1E' }
+                { backgroundColor: selectedSport === sport.id ? sport.color : '#000010' }
               ]}
               onPress={() => setSelectedSport(sport.id)}
             >
@@ -539,7 +539,7 @@ export default function ExploreScreen() {
             tintColor="#FFFFFF"
             titleColor="#FFFFFF"
             colors={["#FFFFFF"]}
-            progressBackgroundColor="#1E1E1E"
+            progressBackgroundColor="#000010"
           />
         }
         bounces={true}
@@ -557,10 +557,10 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#000010',
   },
   fixedHeader: {
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#000010',
     borderBottomWidth: 1,
     borderBottomColor: '#FFFFFF10',
     paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ?? 20),
@@ -588,10 +588,12 @@ const styles = StyleSheet.create({
   },
   gameCard: {
     marginBottom: 8,
-    backgroundColor: '#151515',
+    backgroundColor: '#000010',
     borderRadius: 12,
     overflow: 'hidden',
     width: '48.5%',
+    borderWidth: 1,
+    borderColor: '#FFFFFF20',
   },
   gameCardInner: {
     padding: 8,
@@ -661,7 +663,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 8,
     alignItems: 'center',
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#000010',
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 4,
@@ -678,7 +680,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#000010',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -691,7 +693,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#000010',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#FFFFFF20',
@@ -700,7 +702,7 @@ const styles = StyleSheet.create({
   },
   searchBarWrapperFocused: {
     borderColor: '#FFFFFF40',
-    backgroundColor: '#252525',
+    backgroundColor: '#000010',
   },
   cancelButton: {
     paddingVertical: 8,
@@ -748,7 +750,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginRight: 8,
     borderRadius: 20,
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#000010',
     borderWidth: 1,
     borderColor: '#FFFFFF10',
     height: 36,
@@ -757,7 +759,7 @@ const styles = StyleSheet.create({
   },
   filterTabSelected: {
     backgroundColor: '#FFFFFF15',
-    borderColor: '#FFFFFF30',
+    borderColor: '#FFFFFF20',
   },
   filterText: {
     color: '#FFFFFF80',
@@ -773,6 +775,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 32,
+    backgroundColor: '#000010',
   },
   emptyStateText: {
     color: '#FFFFFF80',

@@ -57,12 +57,8 @@
     "react-native-vision-camera": "^4.6.3",
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
-<<<<<<< HEAD
     "tesseract.js": "^6.0.0",
     "expo-av": "~15.0.1"
-=======
-    "tesseract.js": "^6.0.0"
->>>>>>> c168cc1a68e23ace5deab591e708608d967f7e2c
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

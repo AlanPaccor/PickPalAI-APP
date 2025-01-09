@@ -15,6 +15,19 @@ interface GameDetailsModalProps {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+const getSportIcon = (sportKey: string): IconName => {
+  const iconMap: Record<string, IconName> = {
+    'basketball': 'basketball',
+    'americanfootball': 'football',
+    'baseball': 'baseball-bat',
+    'icehockey': 'hockey-puck',
+    'soccer': 'soccer',
+    'tennis': 'tennis',
+  };
+  
+  return iconMap[sportKey] || 'help-circle';
+};
+
 export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   game,
   visible,
@@ -57,7 +70,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
             <ThemedView style={styles.heroSection}>
               <ThemedView style={styles.sportIconContainer}>
                 <MaterialCommunityIcons 
-                  name={game.sport as any} 
+                  name={getSportIcon(game.sport)}
                   size={40} 
                   color="white"
                 />
@@ -153,17 +166,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalContent: {
-    backgroundColor: '#151515',
+    backgroundColor: '#000010',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     minHeight: SCREEN_HEIGHT * 0.7,
     maxHeight: SCREEN_HEIGHT * 0.9,
     paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+    borderTopWidth: 1,
+    borderColor: '#FFFFFF30',
   },
   handle: {
     width: 36,
     height: 5,
-    backgroundColor: '#FFFFFF20',
+    backgroundColor: '#FFFFFF30',
     borderRadius: 3,
     alignSelf: 'center',
     marginTop: 8,
@@ -203,7 +218,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#000010',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -227,10 +242,12 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#000010',
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFFFFF20',
   },
   popularityIcon: {
     marginBottom: 4,
@@ -266,7 +283,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#000010',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -289,7 +306,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2196F3',
+    backgroundColor: '#000040',
     padding: 16,
     borderRadius: 16,
     gap: 8,
@@ -300,16 +317,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   predictionCard: {
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#000010',
     borderRadius: 16,
     padding: 16,
     marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FFFFFF20',
   },
   predictionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     marginBottom: 8,
+    backgroundColor: '#000010',
   },
   predictionTitle: {
     fontSize: 16,

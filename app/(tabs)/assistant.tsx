@@ -46,7 +46,8 @@ export default function AssistantScreen() {
               3. Explain what needs to happen for the bet to win
               4. Give a simple analysis in everyday language
               5. Avoid complex betting terminology
-              6. If you mention any stats, explain why they matter`
+              6. If you mention any stats, explain why they matter
+              7. Provide your opinion on the bet and format it in bold using markdown (e.g., **I think this bet has good value because...**)`
             },
             {
               role: "user",
@@ -104,10 +105,10 @@ export default function AssistantScreen() {
               content: `You are a friendly sports betting assistant who:
               1. Uses simple, everyday language
               2. Provides relevant recent player stats when discussing players
-              3. Explains concepts as if talking to a friend
+              3. Explains concepts as if you're confidant in your knowledge
               4. Breaks down complex ideas into simple terms
               5. Focuses on what matters most to the bettor
-              6. Always explains why certain stats or information is important`
+              6. Provides clear opinion on which bet to make (Example: "I would suggest {answer}, remember this is just my opinion and you should make your own decision")`
             },
             ...chatHistory.map(msg => ({
               role: msg.role,
@@ -176,7 +177,11 @@ export default function AssistantScreen() {
                 chat.role === 'user' ? styles.userMessageText : styles.assistantMessageText
               ]}
             >
-              {chat.content}
+              {chat.content.split('**').map((text, index) => (
+                <Text key={index} style={index % 2 === 1 ? styles.boldText : undefined}>
+                  {text}
+                </Text>
+              ))}
             </Text>
           </View>
         ))}
@@ -226,12 +231,12 @@ const additionalStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#000010',
   },
   imagePreviewContainer: {
     padding: 10,
     alignItems: 'center',
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#000010',
     borderBottomWidth: 1,
     borderBottomColor: '#333',
   },
@@ -260,13 +265,17 @@ const styles = StyleSheet.create({
   },
   userMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: '#0A84FF',
+    backgroundColor: '#000010',
     borderBottomRightRadius: 5,
+    borderWidth: 1,
+    borderColor: '#0A84FF',
   },
   assistantMessage: {
     alignSelf: 'flex-start',
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#000010',
     borderBottomLeftRadius: 5,
+    borderWidth: 1,
+    borderColor: '#FFFFFF20',
   },
   messageText: {
     fontSize: 16,
@@ -281,31 +290,37 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     padding: 12,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#000010',
     borderTopWidth: 1,
-    borderTopColor: '#333',
+    borderTopColor: '#FFFFFF20',
   },
   input: {
     flex: 1,
-    backgroundColor: '#333333',
-    borderRadius: 25,
+    backgroundColor: '#000010',
+    borderRadius: 10,
     paddingHorizontal: 20,
     paddingVertical: 10,
     marginRight: 10,
     fontSize: 16,
     maxHeight: 100,
     color: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FFFFFF20',
   },
   sendButton: {
-    backgroundColor: '#0A84FF',
-    borderRadius: 25,
+    backgroundColor: '#000010',
+    borderRadius: 10,
     width: 50,
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#0A84FF',
   },
   sendButtonDisabled: {
-    backgroundColor: '#404040',
+    backgroundColor: '#000010',
+    borderWidth: 1,
+    borderColor: '#FFFFFF20',
   },
   sendButtonText: {
     color: '#FFFFFF',
@@ -313,4 +328,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   ...additionalStyles,
+  boldText: {
+    fontWeight: 'bold',
+  },
 }); 

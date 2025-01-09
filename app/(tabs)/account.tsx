@@ -6,8 +6,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from 'react-native';
 import Colors from '@/constants/Colors';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { MaterialCommunityIconName } from '@/types/icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface MenuItem {
   icon: MaterialCommunityIconName;
@@ -24,6 +24,7 @@ export default function AccountScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const user = auth.currentUser;
+  const insets = useSafeAreaInsets();
 
   const handleLogout = async () => {
     try {
@@ -61,16 +62,10 @@ export default function AccountScreen() {
   ];
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#1A5F7A', dark: '#1D3D47' }}
-      headerImage={
-        <MaterialCommunityIcons 
-          name="account-circle" 
-          size={120} 
-          color="#ffffff50" 
-          style={styles.headerIcon} 
-        />
-      }>
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+    >
       <ThemedView style={styles.profileSection}>
         <ThemedText type="title">{user?.email || 'User'}</ThemedText>
         <ThemedText style={styles.joinDate}>Member since {new Date().getFullYear()}</ThemedText>
@@ -92,7 +87,7 @@ export default function AccountScreen() {
       </ThemedView>
 
       {menuItems.map((section, index) => (
-        <ThemedView key={index} style={styles.section}>
+        <ThemedView key={index} style={[styles.section, styles.sectionContainer]}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>
             {section.title}
           </ThemedText>
@@ -100,7 +95,10 @@ export default function AccountScreen() {
           {section.items.map((item, itemIndex) => (
             <TouchableOpacity 
               key={itemIndex} 
-              style={styles.menuItem}
+              style={[
+                styles.menuItem,
+                itemIndex === section.items.length - 1 && styles.lastMenuItem
+              ]}
               onPress={item.onPress}
             >
               <ThemedView style={styles.menuItemContent}>
@@ -124,26 +122,39 @@ export default function AccountScreen() {
       ))}
 
       <TouchableOpacity 
-        style={[styles.logoutButton, { backgroundColor: '#FF3B30' }]} 
+        style={[styles.logoutButton, { backgroundColor: '#000010',
+          borderWidth: 1,
+          borderColor: '#FFFFFF20',
+         }]} 
         onPress={handleLogout}
       >
         <MaterialCommunityIcons name="logout" size={24} color="white" />
         <ThemedText style={styles.logoutText}>Logout</ThemedText>
       </TouchableOpacity>
-    </ParallaxScrollView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerIcon: {
-    position: 'absolute',
-    right: -20,
-    bottom: -20,
+  container: {
+    flex: 1,
+    backgroundColor: '#000010',
+  },
+  contentContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingTop: 100,
+    paddingBottom: 32,
   },
   profileSection: {
     alignItems: 'center',
     gap: 8,
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#FFFFFF20',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
   },
   joinDate: {
     opacity: 0.7,
@@ -159,10 +170,19 @@ const styles = StyleSheet.create({
     }),
     borderRadius: 12,
     padding: 16,
+    borderWidth: 1,
+    borderColor: '#FFFFFF20',
   },
   statItem: {
     alignItems: 'center',
     gap: 4,
+  },
+  sectionContainer: {
+    borderWidth: 1,
+    borderColor: '#FFFFFF20',
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: '#00000010',
   },
   section: {
     marginBottom: 24,
@@ -174,17 +194,17 @@ const styles = StyleSheet.create({
   menuItem: {
     borderRadius: 12,
     overflow: 'hidden',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFFFFF10',
+  },
+  lastMenuItem: {
+    borderBottomWidth: 0,
   },
   menuItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: Platform.select({ 
-      ios: '#00000010', 
-      android: '#00000010', 
-      web: '#00000010' 
-    }),
   },
   menuItemLeft: {
     flexDirection: 'row',
