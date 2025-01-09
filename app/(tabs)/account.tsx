@@ -54,48 +54,40 @@ export default function AccountScreen() {
     {
       title: 'Account Settings',
       items: [
-        { icon: 'account-edit-outline', label: 'Edit Plan', onPress: () => router.push('/account/edit-plan') },
-        { icon: 'bell-outline', label: 'Notifications', onPress: () => router.push('/account/notifications') },
-        { icon: 'shield-lock-outline', label: 'Privacy & Security', onPress: () => router.push('/account/privacy') },
-      ]
-    },
-    {
-      title: 'Preferences',
-      items: [
+        { 
+          icon: 'credit-card-outline', 
+          label: 'Billing & Payments', 
+          onPress: () => router.push('/account/billing')
+        },
         { 
           icon: 'chart-line', 
           label: 'Betting Preferences', 
           onPress: () => router.push('/account/betting-preferences')
         },
         { 
-          icon: 'currency-usd', 
-          label: 'Currency Settings', 
-          onPress: () => router.push('/account/currency-settings')
+          icon: 'bell-outline', 
+          label: 'Notifications', 
+          onPress: () => router.push('/account/notifications')
+        },
+      ]
+    },
+    {
+      title: 'Preferences & Privacy',
+      items: [
+        { 
+          icon: 'shield-lock-outline', 
+          label: 'Privacy & Security', 
+          onPress: () => router.push('/account/privacy')
         },
         { 
           icon: 'translate', 
           label: 'Language', 
           onPress: () => router.push('/account/language')
         },
-      ]
-    },
-    {
-      title: 'Support',
-      items: [
         { 
           icon: 'help-circle-outline', 
-          label: 'Help Center', 
-          onPress: () => showModal('Help Center', 'Need help? Contact our support team at support@example.com or visit our FAQ page.') 
-        },
-        { 
-          icon: 'message-text-outline', 
-          label: 'Contact Support', 
-          onPress: () => showModal('Contact Support', 'Our support team is available 24/7. Email: support@example.com\nPhone: 1-800-EXAMPLE') 
-        },
-        { 
-          icon: 'information-outline', 
-          label: 'About', 
-          onPress: () => showModal('About', 'Version 1.0.0\n\nDeveloped by Example Team\n\n© 2024 Example Inc.') 
+          label: 'Support & Feedback', 
+          onPress: () => router.push('/account/support')
         },
       ]
     }
