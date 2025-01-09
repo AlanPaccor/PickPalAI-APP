@@ -119,9 +119,9 @@ export default function ScanScreen() {
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
-        <ThemedText style={styles.title}>{t('uploadTicket')}</ThemedText>
+        <ThemedText style={styles.title}>Scan Betting Slip</ThemedText>
         <ThemedText style={styles.subtitle}>
-          {t('uploadSubtitle')}
+          Upload your betting slip to get instant analysis and predictions
         </ThemedText>
       </ThemedView>
 
@@ -139,7 +139,7 @@ export default function ScanScreen() {
                 <ThemedView style={styles.processingOverlay}>
                   <MaterialIcons name="hourglass-top" size={48} color="#1E90FF" />
                   <ThemedText style={styles.processingText}>
-                    {t('processingImage')}
+                    Analyzing your betting slip...
                   </ThemedText>
                 </ThemedView>
               )}
@@ -148,10 +148,10 @@ export default function ScanScreen() {
             <ThemedView style={styles.uploadPlaceholder}>
               <MaterialIcons name="cloud-upload" size={48} color="#1E90FF" />
               <ThemedText style={styles.uploadText}>
-                {t('uploadFromGallery')}
+                Upload Betting Slip
               </ThemedText>
               <ThemedText style={styles.supportedFormats}>
-                {t('supportedFormats')}
+                Supports JPG, PNG, and HEIC formats
               </ThemedText>
             </ThemedView>
           )}
@@ -159,19 +159,33 @@ export default function ScanScreen() {
       </TouchableOpacity>
 
       <ThemedView style={styles.instructions}>
-        <ThemedText style={styles.instructionsTitle}>{t('howItWorks')}</ThemedText>
-        {[
-          t('step1'),
-          t('step2'),
-          t('step3')
-        ].map((text, index) => (
-          <ThemedView key={index} style={styles.step}>
-            <ThemedView style={styles.stepNumber}>
-              <ThemedText style={styles.stepNumberText}>{index + 1}</ThemedText>
-            </ThemedView>
-            <ThemedText style={styles.stepText}>{text}</ThemedText>
+        <ThemedText style={styles.instructionsTitle}>How It Works</ThemedText>
+        <ThemedView style={styles.step}>
+          <ThemedView style={styles.stepNumber}>
+            <ThemedText style={styles.stepNumberText}>1</ThemedText>
           </ThemedView>
-        ))}
+          <ThemedText style={styles.stepText}>
+            Take a clear photo of your betting slip or select one from your gallery
+          </ThemedText>
+        </ThemedView>
+
+        <ThemedView style={styles.step}>
+          <ThemedView style={styles.stepNumber}>
+            <ThemedText style={styles.stepNumberText}>2</ThemedText>
+          </ThemedView>
+          <ThemedText style={styles.stepText}>
+            Our AI will analyze the odds and betting details automatically
+          </ThemedText>
+        </ThemedView>
+
+        <ThemedView style={styles.step}>
+          <ThemedView style={styles.stepNumber}>
+            <ThemedText style={styles.stepNumberText}>3</ThemedText>
+          </ThemedView>
+          <ThemedText style={styles.stepText}>
+            Get instant predictions and expert analysis for your bets
+          </ThemedText>
+        </ThemedView>
       </ThemedView>
     </ThemedView>
   );

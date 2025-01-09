@@ -84,7 +84,7 @@ export default function Login() {
       entering={FadeIn.duration(500)}
     >
       <ThemedText type="title" style={styles.title}>
-        {t('login')}
+        {t('Login')}
       </ThemedText>
       
       {error && <ThemedText style={styles.error}>{error}</ThemedText>}
@@ -92,7 +92,7 @@ export default function Login() {
       <ThemedView style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder={t('email')}
+          placeholder={t('Email')}
           placeholderTextColor="#FFFFFF50"
           value={email}
           onChangeText={setEmail}
@@ -105,7 +105,7 @@ export default function Login() {
       <ThemedView style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder={t('password')}
+          placeholder={t('Password')}
           placeholderTextColor="#FFFFFF50"
           value={password}
           onChangeText={setPassword}
@@ -150,7 +150,7 @@ export default function Login() {
 
       <TouchableOpacity onPress={navigateToRegister}>
         <ThemedText style={styles.link}>
-          {t('noAccount')} {t('register')}
+          {t('No account?')} {t('Register')}
         </ThemedText>
       </TouchableOpacity>
     </Animated.View>

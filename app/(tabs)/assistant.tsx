@@ -230,7 +230,7 @@ export default function AssistantScreen() {
           style={styles.input}
           value={message}
           onChangeText={setMessage}
-          placeholder={t('chatPlaceholder')}
+          placeholder={t('Chat...')}
           placeholderTextColor="#888"
           multiline
           editable={!isLoading}

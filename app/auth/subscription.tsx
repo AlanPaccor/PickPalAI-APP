@@ -17,15 +17,18 @@ interface PlanFeature {
 interface SubscriptionPlan {
   name: string;
   price: string;
+  originalPrice?: string;
   interval: string;
   features: PlanFeature[];
   popular?: boolean;
+  trial?: string;
 }
 
 interface UserSubscription {
-  plan: 'Free' | 'Pro';
+  plan: 'Monthly' | 'Annual';
   startDate: Date;
-  status: 'active' | 'cancelled' | 'expired';
+  trialEndDate: Date;
+  status: 'trial' | 'active' | 'cancelled' | 'expired';
 }
 
 export default function SubscriptionScreen() {
@@ -34,22 +37,40 @@ export default function SubscriptionScreen() {
 
   const plans: SubscriptionPlan[] = [
     {
-      name: 'Free',
+      name: 'Free Trial',
       price: '$0',
-      interval: 'month',
+      interval: '2 days',
       features: [
-        { icon: 'chart-line', text: '5 predictions per day' },
-        { icon: 'robot-outline', text: 'Basic AI analysis' },
-        { icon: 'chart-timeline-variant', text: 'Limited stats access' },
-        { icon: 'bell-outline', text: 'Basic notifications' },
+        { icon: 'chart-line', text: 'Unlimited predictions' },
+        { icon: 'robot-outline', text: 'Advanced AI analysis' },
+        { icon: 'chart-timeline-variant', text: 'Full stats access' },
+        { icon: 'bell-outline', text: 'Priority notifications' },
+        { icon: 'star', text: 'Expert picks' },
+        { icon: 'chart-bell-curve', text: 'Trend analysis' },
+        { icon: 'information', text: 'Converts to $15/month after trial' },
       ],
     },
     {
-      name: 'Pro',
-      price: '$9.99',
+      name: 'Monthly',
+      price: '$15',
       interval: 'month',
+      features: [
+        { icon: 'chart-line', text: 'Unlimited predictions' },
+        { icon: 'robot-outline', text: 'Advanced AI analysis' },
+        { icon: 'chart-timeline-variant', text: 'Full stats access' },
+        { icon: 'bell-outline', text: 'Priority notifications' },
+        { icon: 'star', text: 'Expert picks' },
+        { icon: 'chart-bell-curve', text: 'Trend analysis' },
+      ],
+    },
+    {
+      name: 'Annual',
+      price: '$153',
+      originalPrice: '$180',
+      interval: 'year',
       popular: true,
       features: [
+        { icon: 'percent', text: '15% discount' },
         { icon: 'chart-line', text: 'Unlimited predictions' },
         { icon: 'robot-outline', text: 'Advanced AI analysis' },
         { icon: 'chart-timeline-variant', text: 'Full stats access' },
@@ -70,37 +91,36 @@ export default function SubscriptionScreen() {
         throw new Error('No user found');
       }
 
-      // Simplified subscription object
+      const now = new Date();
       const subscription: UserSubscription = {
-        plan: plan.name as 'Free' | 'Pro',
-        startDate: new Date(),
-        status: 'active',
+        plan: plan.name === 'Free Trial' ? 'Monthly' : (plan.name as 'Monthly' | 'Annual'),
+        startDate: now,
+        trialEndDate: plan.name === 'Free Trial' ? new Date(now.getTime() + (2 * 24 * 60 * 60 * 1000)) : now,
+        status: plan.name === 'Free Trial' ? 'trial' : 'active',
       };
 
-      // Save to Firestore with minimal data
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
         subscription,
-      });
+      }, { merge: true });
 
-      if (plan.name !== 'Free') {
+      if (plan.name === 'Free Trial') {
+        Alert.alert(
+          'Trial Started',
+          'Your 2-day free trial has started. It will automatically convert to a monthly plan ($15/month) unless cancelled.',
+          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+        );
+      } else {
         Alert.alert(
           'Payment Required',
           'This would typically open a payment flow. For now, we\'ll proceed as if payment was successful.',
-          [
-            {
-              text: 'OK',
-              onPress: () => router.replace('/(tabs)'),
-            },
-          ]
+          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
         );
-      } else {
-        router.replace('/(tabs)');
       }
     } catch (error) {
       Alert.alert(
         'Error',
-        'Failed to save subscription. Please try again.',
+        'Failed to process request. Please try again.',
         [{ text: 'OK' }]
       );
       console.error('Subscription error:', error);
@@ -142,7 +162,7 @@ export default function SubscriptionScreen() {
             >
               {plan.popular && (
                 <View style={styles.popularBadge}>
-                  <ThemedText style={styles.popularText}>Most Popular</ThemedText>
+                  <ThemedText style={styles.popularText}>Save 15%</ThemedText>
                 </View>
               )}
 
@@ -154,6 +174,18 @@ export default function SubscriptionScreen() {
                 <ThemedText style={styles.price}>{plan.price}</ThemedText>
                 <ThemedText style={styles.interval}>/{plan.interval}</ThemedText>
               </View>
+
+              {plan.originalPrice && (
+                <ThemedText style={styles.originalPrice}>
+                  Original price: {plan.originalPrice}
+                </ThemedText>
+              )}
+
+              {plan.trial && (
+                <ThemedText style={styles.trialText}>
+                  {plan.trial} free trial
+                </ThemedText>
+              )}
 
               <View style={styles.featuresContainer}>
                 {plan.features.map((feature, idx) => (
@@ -289,5 +321,17 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  originalPrice: {
+    fontSize: 14,
+    opacity: 0.7,
+    textDecorationLine: 'line-through',
+    marginBottom: 8,
+  },
+  trialText: {
+    fontSize: 14,
+    color: '#0A84FF',
+    fontWeight: '600',
+    marginBottom: 16,
   },
 }); 

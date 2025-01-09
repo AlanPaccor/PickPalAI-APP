@@ -51,7 +51,7 @@ export const SearchBar = React.memo(({ onSearch, onClear }: SearchBarProps) => {
           ref={searchInputRef}
           value={localSearchText}
           onChangeText={handleTextChange}
-          placeholder={t('searchPlaceholder')}
+          placeholder={t('Search...')}
           placeholderTextColor="#FFFFFF60"
           style={styles.searchInput}
           returnKeyType="search"
