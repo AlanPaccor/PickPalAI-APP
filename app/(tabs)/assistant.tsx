@@ -18,17 +18,35 @@ export default function AssistantScreen() {
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    if (imageUri && extractedText) {
-      console.log('Received image and text in assistant:', imageUri);
+    if (extractedText) {
       processTicketWithAI(extractedText);
     }
-  }, [imageUri, extractedText]);
+  }, [extractedText]);
 
   const processTicketWithAI = async (text: string) => {
     try {
       setIsLoading(true);
       const decodedText = decodeURIComponent(text);
       
+      const systemMessage = type === 'game' 
+        ? `You are a sports prediction analyst. When analyzing game predictions:
+          1. Start with a brief overview of the prediction
+          2. Share the player's recent performance stats and trends
+          3. Analyze the matchup against the opponent
+          4. Consider any relevant factors (injuries, rest days, etc.)
+          5. Provide your confidence level in the prediction
+          6. Format important points in bold using **text**
+          7. Use clear, simple language
+          8. End with a clear recommendation`
+        : `You are a friendly sports betting assistant. Your job is to:
+          1. Break down betting tickets in simple terms
+          2. Look up and share the player's most recent performance stats
+          3. Explain what needs to happen for the bet to win
+          4. Give a simple analysis in everyday language
+          5. Avoid complex betting terminology
+          6. If you mention any stats, explain why they matter
+          7. Provide your opinion on the bet and format it in bold`;
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -40,18 +58,11 @@ export default function AssistantScreen() {
           messages: [
             {
               role: "system",
-              content: `You are a friendly sports betting assistant. Your job is to:
-              1. Break down betting tickets in simple terms
-              2. Look up and share the player's most recent performance stats
-              3. Explain what needs to happen for the bet to win
-              4. Give a simple analysis in everyday language
-              5. Avoid complex betting terminology
-              6. If you mention any stats, explain why they matter
-              7. Provide your opinion on the bet and format it in bold using markdown (e.g., **I think this bet has good value because...**)`
+              content: systemMessage
             },
             {
               role: "user",
-              content: `Here's my betting ticket - can you explain it in simple terms and tell me about the player's recent performance? ${decodedText}`
+              content: decodedText
             }
           ],
           temperature: 0.7,
@@ -59,23 +70,22 @@ export default function AssistantScreen() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`OpenAI API Error: ${JSON.stringify(errorData)}`);
+        throw new Error('API request failed');
       }
 
       const data = await response.json();
-      const aiResponse = data.choices[0]?.message?.content || "Sorry, I couldn't analyze the ticket properly.";
+      const aiResponse = data.choices[0]?.message?.content || "Sorry, I couldn't analyze that properly.";
 
-      setChatHistory(prev => [...prev, {
+      setChatHistory([{
         role: 'assistant',
         content: aiResponse
       }]);
 
     } catch (error) {
       console.error('AI Processing Error:', error);
-      setChatHistory(prev => [...prev, {
+      setChatHistory([{
         role: 'assistant',
-        content: 'Sorry, I had trouble analyzing your ticket. Want to try asking me about it in a different way?'
+        content: 'Sorry, I had trouble analyzing that. Please try again.'
       }]);
     } finally {
       setIsLoading(false);

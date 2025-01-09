@@ -6,6 +6,7 @@ import { ThemedText } from './ThemedText';
 import { Game } from '@/types/sports';
 import Colors from '@/constants/Colors';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { router } from 'expo-router';
 
 interface GameDetailsModalProps {
   game: Game | null;
@@ -34,6 +35,36 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   onClose,
 }) => {
   if (!game) return null;
+
+  const handleAssistantPress = () => {
+    // Create a detailed analysis request
+    const gameAnalysisPrompt = `
+Please analyze this game prediction:
+
+Player: ${game.player}
+Team: ${game.team} vs ${game.opponent}
+Sport: ${game.sport}
+Position: ${game.position}
+Prediction: ${game.prediction} ${game.stat}
+Game Time: ${game.time}
+Popularity: ${game.popularity}
+
+Please provide:
+1. Recent performance analysis
+2. Key matchup factors
+3. Your opinion on this prediction
+`.trim();
+
+    // Close modal and navigate to assistant with the analysis request
+    onClose();
+    router.push({
+      pathname: '/assistant',
+      params: {
+        type: 'game',
+        extractedText: encodeURIComponent(gameAnalysisPrompt)
+      }
+    });
+  };
 
   return (
     <Modal
@@ -128,7 +159,10 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
 
             {/* Action Buttons */}
             <ThemedView style={styles.actionButtons}>
-              <TouchableOpacity style={styles.assistantButton}>
+              <TouchableOpacity 
+                style={styles.assistantButton}
+                onPress={handleAssistantPress}
+              >
                 <MaterialCommunityIcons name="robot" size={24} color="#FFFFFF" />
                 <ThemedText style={styles.buttonText}>Assistant</ThemedText>
               </TouchableOpacity>
