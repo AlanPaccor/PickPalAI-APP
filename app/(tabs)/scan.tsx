@@ -5,6 +5,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import Constants from 'expo-constants';
+import { useTranslation } from 'react-i18next';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -14,6 +15,7 @@ const { width } = Dimensions.get('window');
 const GOOGLE_CLOUD_VISION_API_KEY = Constants.expoConfig?.extra?.GOOGLE_CLOUD_VISION_API_KEY;
 
 export default function ScanScreen() {
+  const { t } = useTranslation();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -117,9 +119,9 @@ export default function ScanScreen() {
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
-        <ThemedText style={styles.title}>Upload Ticket</ThemedText>
+        <ThemedText style={styles.title}>{t('uploadTicket')}</ThemedText>
         <ThemedText style={styles.subtitle}>
-          Upload a screenshot of your betting ticket to get instant analysis
+          {t('uploadSubtitle')}
         </ThemedText>
       </ThemedView>
 
@@ -136,16 +138,20 @@ export default function ScanScreen() {
               {isProcessing && (
                 <ThemedView style={styles.processingOverlay}>
                   <MaterialIcons name="hourglass-top" size={48} color="#1E90FF" />
-                  <ThemedText style={styles.processingText}>Processing...</ThemedText>
+                  <ThemedText style={styles.processingText}>
+                    {t('processingImage')}
+                  </ThemedText>
                 </ThemedView>
               )}
             </>
           ) : (
             <ThemedView style={styles.uploadPlaceholder}>
               <MaterialIcons name="cloud-upload" size={48} color="#1E90FF" />
-              <ThemedText style={styles.uploadText}>Tap to Upload Screenshot</ThemedText>
+              <ThemedText style={styles.uploadText}>
+                {t('uploadFromGallery')}
+              </ThemedText>
               <ThemedText style={styles.supportedFormats}>
-                Supports PNG, JPG formats
+                {t('supportedFormats')}
               </ThemedText>
             </ThemedView>
           )}
@@ -153,11 +159,11 @@ export default function ScanScreen() {
       </TouchableOpacity>
 
       <ThemedView style={styles.instructions}>
-        <ThemedText style={styles.instructionsTitle}>How it works:</ThemedText>
+        <ThemedText style={styles.instructionsTitle}>{t('howItWorks')}</ThemedText>
         {[
-          "Take a screenshot of your betting ticket",
-          "Upload the screenshot here",
-          "Get instant analysis and insights"
+          t('step1'),
+          t('step2'),
+          t('step3')
         ].map((text, index) => (
           <ThemedView key={index} style={styles.step}>
             <ThemedView style={styles.stepNumber}>

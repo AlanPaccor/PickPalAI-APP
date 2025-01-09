@@ -11,6 +11,7 @@ import { MaterialCommunityIconName } from '@/types/icons';
 import axios from 'axios';
 import { SearchBar } from '@/components/SearchBar';
 import { GameDetailsModal } from '@/components/GameDetailsModal';
+import { useTranslation } from 'react-i18next';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -32,40 +33,6 @@ const SPORTS: Array<{
   { id: 'mma', name: 'MMA', icon: 'boxing-glove', color: '#1E3A5F' },
 ];
 
-const FILTERS = [
-  { id: 'popular', label: 'Popular 🔥', type: 'popularity' },
-  { id: 'trending', label: 'Trending 📈', type: 'trending' },
-  { id: 'value', label: 'Best Value 💎', type: 'value' },
-  // Sport-specific filters
-  { id: 'passing', label: 'Passing Yards 🏈', type: 'stat', sports: ['nfl', 'nfl4q', 'cfb'] },
-  { id: 'receiving', label: 'Receiving Yards 🏃', type: 'stat', sports: ['nfl', 'nfl4q', 'cfb'] },
-  { id: 'rushing', label: 'Rushing Yards 🏃', type: 'stat', sports: ['nfl', 'nfl4q', 'cfb'] },
-  { id: 'points', label: 'Points 🏀', type: 'stat', sports: ['nba', 'nba4q'] },
-  { id: 'rebounds', label: 'Rebounds 🏀', type: 'stat', sports: ['nba', 'nba4q'] },
-  { id: 'assists', label: 'Assists 🏀', type: 'stat', sports: ['nba', 'nba4q'] },
-  { id: 'goals', label: 'Goals ⚽', type: 'stat', sports: ['soccer'] },
-  { id: 'shots', label: 'Shots on Goal 🥅', type: 'stat', sports: ['nhl', 'soccer'] },
-  { id: 'hits', label: 'Hits ⚾', type: 'stat', sports: ['mlb'] },
-  { id: 'strikeouts', label: 'Strikeouts ⚾', type: 'stat', sports: ['mlb'] },
-];
-
-type OddsGame = {
-  id: string;
-  sport_key: string;
-  sport_title: string;
-  commence_time: string;
-  home_team: string;
-  away_team: string;
-  bookmakers?: Array<{
-    markets: Array<{
-      outcomes: Array<{
-        name: string;
-        price: number;
-      }>;
-    }>;
-  }>;
-};
-
 const MOCK_PLAYERS = [
   { name: 'Patrick Mahomes', team: 'Chiefs', position: 'NFL', sport: 'americanfootball', stat: 'Pass Yards' },
   { name: 'LeBron James', team: 'Lakers', position: 'NBA', sport: 'basketball', stat: 'Points' },
@@ -83,76 +50,8 @@ const MOCK_OPPONENTS = [
   'Bills', 'Heat', 'Rangers', 'Astros'
 ];
 
-// Create a memoized header component
-const ListHeader = React.memo(({ 
-  selectedSport,
-  setSelectedSport,
-  selectedFilter,
-  setSelectedFilter,
-  onSearch,
-  onClearSearch
-}: {
-  selectedSport: string;
-  setSelectedSport: (sport: string) => void;
-  selectedFilter: string;
-  setSelectedFilter: (filter: string) => void;
-  onSearch: (text: string) => void;
-  onClearSearch: () => void;
-}) => (
-  <ThemedView style={styles.topSection}>
-    <SearchBar 
-      onSearch={onSearch}
-      onClear={onClearSearch}
-    />
-    <FlatList
-      horizontal
-      data={SPORTS}
-      showsHorizontalScrollIndicator={false}
-      style={styles.sportsScroll}
-      renderItem={({item: sport}) => (
-        <TouchableOpacity
-          key={sport.id}
-          style={[
-            styles.sportTab,
-            selectedSport === sport.id && styles.sportTabSelected,
-            { backgroundColor: selectedSport === sport.id ? sport.color : '#1E1E1E' }
-          ]}
-          onPress={() => setSelectedSport(sport.id)}
-        >
-          <MaterialCommunityIcons name={sport.icon} size={24} color="white" />
-          <ThemedText style={styles.sportText}>{sport.name}</ThemedText>
-        </TouchableOpacity>
-      )}
-      keyExtractor={item => item.id}
-    />
-    <FlatList
-      horizontal
-      data={FILTERS}
-      showsHorizontalScrollIndicator={false}
-      style={styles.filtersScroll}
-      renderItem={({item: filter}) => (
-        <TouchableOpacity
-          key={filter.id}
-          style={[
-            styles.filterTab,
-            selectedFilter === filter.id && styles.filterTabSelected,
-          ]}
-          onPress={() => setSelectedFilter(filter.id)}
-        >
-          <ThemedText style={[
-            styles.filterText,
-            selectedFilter === filter.id && styles.filterTextSelected,
-          ]}>
-            {filter.label}
-          </ThemedText>
-        </TouchableOpacity>
-      )}
-      keyExtractor={item => item.id}
-    />
-  </ThemedView>
-));
-
 export default function ExploreScreen() {
+  const { t } = useTranslation();
   const [selectedSport, setSelectedSport] = useState('nfl');
   const [selectedFilter, setSelectedFilter] = useState('popular');
   const [games, setGames] = useState<Game[]>([]);
@@ -167,6 +66,23 @@ export default function ExploreScreen() {
   const [allGames, setAllGames] = useState<Game[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const FILTERS = useMemo(() => [
+    { id: 'popular', label: t('popular'), type: 'popularity' },
+    { id: 'trending', label: t('trending'), type: 'trending' },
+    { id: 'value', label: t('bestValue'), type: 'value' },
+    // Sport-specific filters
+    { id: 'passing', label: t('passingYards'), type: 'stat', sports: ['nfl', 'nfl4q', 'cfb'] },
+    { id: 'receiving', label: t('receivingYards'), type: 'stat', sports: ['nfl', 'nfl4q', 'cfb'] },
+    { id: 'rushing', label: t('rushingYards'), type: 'stat', sports: ['nfl', 'nfl4q', 'cfb'] },
+    { id: 'points', label: t('points'), type: 'stat', sports: ['nba', 'nba4q'] },
+    { id: 'rebounds', label: t('rebounds'), type: 'stat', sports: ['nba', 'nba4q'] },
+    { id: 'assists', label: t('assists'), type: 'stat', sports: ['nba', 'nba4q'] },
+    { id: 'goals', label: t('goals'), type: 'stat', sports: ['soccer'] },
+    { id: 'shots', label: t('shots'), type: 'stat', sports: ['nhl', 'soccer'] },
+    { id: 'hits', label: t('hits'), type: 'stat', sports: ['mlb'] },
+    { id: 'strikeouts', label: t('strikeouts'), type: 'stat', sports: ['mlb'] },
+  ], [t]);
 
   const handleSearch = useCallback((text: string) => {
     setSearchText(text);
@@ -429,16 +345,73 @@ export default function ExploreScreen() {
     );
   };
 
-  const memoizedHeader = useMemo(() => (
-    <ListHeader
-      selectedSport={selectedSport}
-      setSelectedSport={setSelectedSport}
-      selectedFilter={selectedFilter}
-      setSelectedFilter={setSelectedFilter}
-      onSearch={handleSearch}
-      onClearSearch={handleClearSearch}
-    />
-  ), [selectedSport, selectedFilter, handleSearch, handleClearSearch]);
+  const ListHeader = useCallback(({ 
+    selectedSport,
+    setSelectedSport,
+    selectedFilter,
+    setSelectedFilter,
+    onSearch,
+    onClearSearch
+  }: {
+    selectedSport: string;
+    setSelectedSport: (sport: string) => void;
+    selectedFilter: string;
+    setSelectedFilter: (filter: string) => void;
+    onSearch: (text: string) => void;
+    onClearSearch: () => void;
+  }) => (
+    <ThemedView style={styles.topSection}>
+      <SearchBar 
+        onSearch={onSearch}
+        onClear={onClearSearch}
+      />
+      <FlatList
+        horizontal
+        data={SPORTS}
+        showsHorizontalScrollIndicator={false}
+        style={styles.sportsScroll}
+        renderItem={({item: sport}) => (
+          <TouchableOpacity
+            key={sport.id}
+            style={[
+              styles.sportTab,
+              selectedSport === sport.id && styles.sportTabSelected,
+              { backgroundColor: selectedSport === sport.id ? sport.color : '#000010' }
+            ]}
+            onPress={() => setSelectedSport(sport.id)}
+          >
+            <MaterialCommunityIcons name={sport.icon} size={24} color="white" />
+            <ThemedText style={styles.sportText}>{sport.name}</ThemedText>
+          </TouchableOpacity>
+        )}
+        keyExtractor={item => item.id}
+      />
+      <FlatList
+        horizontal
+        data={FILTERS}
+        showsHorizontalScrollIndicator={false}
+        style={styles.filtersScroll}
+        renderItem={({item: filter}) => (
+          <TouchableOpacity
+            key={filter.id}
+            style={[
+              styles.filterTab,
+              selectedFilter === filter.id && styles.filterTabSelected,
+            ]}
+            onPress={() => setSelectedFilter(filter.id)}
+          >
+            <ThemedText style={[
+              styles.filterText,
+              selectedFilter === filter.id && styles.filterTextSelected,
+            ]}>
+              {filter.label}
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+        keyExtractor={item => item.id}
+      />
+    </ThemedView>
+  ), [selectedSport, selectedFilter, FILTERS]);
 
   const handleCloseModal = () => {
     setIsModalVisible(false);
@@ -454,57 +427,14 @@ export default function ExploreScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedView style={styles.fixedHeader}>
-        <SearchBar 
-          onSearch={handleSearch}
-          onClear={handleClearSearch}
-        />
-        <FlatList
-          horizontal
-          data={SPORTS}
-          showsHorizontalScrollIndicator={false}
-          style={styles.sportsScroll}
-          renderItem={({item: sport}) => (
-            <TouchableOpacity
-              key={sport.id}
-              style={[
-                styles.sportTab,
-                selectedSport === sport.id && styles.sportTabSelected,
-                { backgroundColor: selectedSport === sport.id ? sport.color : '#000010' }
-              ]}
-              onPress={() => setSelectedSport(sport.id)}
-            >
-              <MaterialCommunityIcons name={sport.icon} size={24} color="white" />
-              <ThemedText style={styles.sportText}>{sport.name}</ThemedText>
-            </TouchableOpacity>
-          )}
-          keyExtractor={item => item.id}
-        />
-        <FlatList
-          horizontal
-          data={getRelevantFilters()}
-          showsHorizontalScrollIndicator={false}
-          style={styles.filtersScroll}
-          renderItem={({item: filter}) => (
-            <TouchableOpacity
-              key={filter.id}
-              style={[
-                styles.filterTab,
-                selectedFilter === filter.id && styles.filterTabSelected,
-              ]}
-              onPress={() => setSelectedFilter(filter.id)}
-            >
-              <ThemedText style={[
-                styles.filterText,
-                selectedFilter === filter.id && styles.filterTextSelected,
-              ]}>
-                {filter.label}
-              </ThemedText>
-            </TouchableOpacity>
-          )}
-          keyExtractor={item => item.id}
-        />
-      </ThemedView>
+      <ListHeader
+        selectedSport={selectedSport}
+        setSelectedSport={setSelectedSport}
+        selectedFilter={selectedFilter}
+        setSelectedFilter={setSelectedFilter}
+        onSearch={handleSearch}
+        onClearSearch={handleClearSearch}
+      />
 
       <FlatList
         key="two-column-grid"
@@ -525,10 +455,10 @@ export default function ExploreScreen() {
           <ThemedView style={styles.emptyState}>
             <ThemedText style={styles.emptyStateText}>
               {searchText 
-                ? 'No results found'
+                ? t('noResults')
                 : loading 
-                  ? 'Loading...' 
-                  : 'No games available'}
+                  ? t('loading') 
+                  : t('noGames')}
             </ThemedText>
           </ThemedView>
         )}
@@ -783,5 +713,12 @@ const styles = StyleSheet.create({
   },
   actionButtonTextHighlight: {
     color: '#FFFFFF',
+  },
+  topSection: {
+    backgroundColor: '#000010',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFFFFF10',
+    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ?? 20),
+    zIndex: 1,
   },
 });

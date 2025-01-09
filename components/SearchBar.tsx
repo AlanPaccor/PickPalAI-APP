@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColorScheme } from 'react-native';
 import { debounce } from 'lodash';
 import { ThemedText } from './ThemedText';
+import { useTranslation } from 'react-i18next';
 
 interface SearchBarProps {
   onSearch: (text: string) => void;
@@ -11,6 +12,7 @@ interface SearchBarProps {
 }
 
 export const SearchBar = React.memo(({ onSearch, onClear }: SearchBarProps) => {
+  const { t } = useTranslation();
   const [localSearchText, setLocalSearchText] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const searchInputRef = useRef<TextInput>(null);
@@ -49,7 +51,7 @@ export const SearchBar = React.memo(({ onSearch, onClear }: SearchBarProps) => {
           ref={searchInputRef}
           value={localSearchText}
           onChangeText={handleTextChange}
-          placeholder="Search players, teams..."
+          placeholder={t('searchPlaceholder')}
           placeholderTextColor="#FFFFFF60"
           style={styles.searchInput}
           returnKeyType="search"

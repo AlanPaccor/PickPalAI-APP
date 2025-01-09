@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { Redirect } from 'expo-router';
 import Colors from '@/constants/Colors';
 import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import { useTranslation } from 'react-i18next';
 
 // Add type for the AssistantIcon props
 interface AssistantIconProps {
@@ -48,6 +49,7 @@ export default function TabLayout() {
   const { user, loading } = useAuth();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  const { t } = useTranslation();
 
   if (loading) return null;
   if (!user) return <Redirect href="/auth/login" />;
@@ -81,14 +83,14 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Home',
+            title: t('home'),
             tabBarIcon: ({ color }) => <MaterialIcons name="home" size={24} color={color} />,
           }}
         />
         <Tabs.Screen
           name="explore"
           options={{
-            title: 'Explore',
+            title: t('explore'),
             tabBarIcon: ({ color }) => <MaterialIcons name="explore" size={24} color={color} />,
           }}
         />
@@ -104,17 +106,15 @@ export default function TabLayout() {
         <Tabs.Screen
           name="scan"
           options={{
-            title: 'Scan',
+            title: t('scan'),
             tabBarIcon: ({ color }) => <MaterialIcons name="qr-code-scanner" size={24} color={color} />,
-            headerShown: false,
           }}
         />
         <Tabs.Screen
           name="account"
           options={{
-            title: 'Account',
+            title: t('account'),
             tabBarIcon: ({ color }) => <MaterialIcons name="person" size={24} color={color} />,
-            headerShown: false,
           }}
         />
       </Tabs>

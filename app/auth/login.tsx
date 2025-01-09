@@ -10,8 +10,10 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { doc, getDoc } from 'firebase/firestore';
 import * as SecureStore from 'expo-secure-store';
+import { useTranslation } from 'react-i18next';
 
 export default function Login() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -82,7 +84,7 @@ export default function Login() {
       entering={FadeIn.duration(500)}
     >
       <ThemedText type="title" style={styles.title}>
-        Login
+        {t('login')}
       </ThemedText>
       
       {error && <ThemedText style={styles.error}>{error}</ThemedText>}
@@ -90,7 +92,7 @@ export default function Login() {
       <ThemedView style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Email"
+          placeholder={t('email')}
           placeholderTextColor="#FFFFFF50"
           value={email}
           onChangeText={setEmail}
@@ -103,7 +105,7 @@ export default function Login() {
       <ThemedView style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Password"
+          placeholder={t('password')}
           placeholderTextColor="#FFFFFF50"
           value={password}
           onChangeText={setPassword}
@@ -148,7 +150,7 @@ export default function Login() {
 
       <TouchableOpacity onPress={navigateToRegister}>
         <ThemedText style={styles.link}>
-          Don't have an account? Register
+          {t('noAccount')} {t('register')}
         </ThemedText>
       </TouchableOpacity>
     </Animated.View>

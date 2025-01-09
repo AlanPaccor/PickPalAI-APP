@@ -5,64 +5,47 @@ import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 export default function WelcomeScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
   return (
     <ThemedView style={styles.container}>
-      {/* Logo and Title Section */}
-      <Animated.View 
-        style={styles.headerSection}
-        entering={FadeIn.delay(200).duration(1000)}
-      >
-        <MaterialCommunityIcons 
-          name="chart-line" 
-          size={80} 
-          color="#0A84FF" 
-        />
+      <Animated.View style={styles.headerSection}>
+        <MaterialCommunityIcons name="chart-line" size={80} color="#0A84FF" />
         <ThemedText type="title" style={styles.title}>
-          Welcome to PredictPro
+          {t('welcomeTitle')}
         </ThemedText>
       </Animated.View>
 
-      {/* Features Section */}
-      <Animated.View 
-        style={styles.featuresSection}
-        entering={FadeIn.delay(400).duration(1000)}
-      >
+      <Animated.View style={styles.featuresSection}>
         <FeatureItem 
           icon="chart-bell-curve" 
-          text="Get AI-powered sports predictions"
+          text={t('featureAIPredictions')}
         />
         <FeatureItem 
           icon="chart-timeline-variant" 
-          text="Track performance in real-time"
+          text={t('featureTracking')}
         />
         <FeatureItem 
           icon="robot-outline" 
-          text="Chat with our AI assistant"
+          text={t('featureAIChat')}
         />
         <FeatureItem 
           icon="bell-outline" 
-          text="Receive instant notifications"
+          text={t('featureNotifications')}
         />
       </Animated.View>
 
-      {/* Buttons Section */}
-      <Animated.View 
-        style={[
-          styles.buttonSection,
-          { paddingBottom: insets.bottom + 20 }
-        ]}
-        entering={SlideInDown.delay(600).duration(800)}
-      >
+      <Animated.View style={styles.buttonSection}>
         <TouchableOpacity 
           style={styles.registerButton}
           onPress={() => router.push('/auth/register')}
         >
           <ThemedText style={styles.buttonText}>
-            Create Account
+            {t('createAccount')}
           </ThemedText>
         </TouchableOpacity>
 
@@ -71,7 +54,7 @@ export default function WelcomeScreen() {
           onPress={() => router.push('/auth/login')}
         >
           <ThemedText style={styles.loginText}>
-            Already have an account? Login
+            {t('alreadyHaveAccount')}
           </ThemedText>
         </TouchableOpacity>
       </Animated.View>

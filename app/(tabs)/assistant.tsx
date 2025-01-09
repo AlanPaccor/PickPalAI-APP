@@ -6,6 +6,7 @@ import Constants from 'expo-constants';
 import { db } from '../config/firebase';
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 const OPENAI_API_KEY = Constants.expoConfig?.extra?.OPENAI_API_KEY;
 
@@ -20,6 +21,7 @@ export default function AssistantScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (extractedText) {
@@ -218,7 +220,7 @@ export default function AssistantScreen() {
         ))}
         {isLoading && (
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Analyzing...</Text>
+            <Text style={styles.loadingText}>{t('analyzing')}</Text>
           </View>
         )}
       </ScrollView>
@@ -228,7 +230,7 @@ export default function AssistantScreen() {
           style={styles.input}
           value={message}
           onChangeText={setMessage}
-          placeholder="Ask about your ticket..."
+          placeholder={t('chatPlaceholder')}
           placeholderTextColor="#888"
           multiline
           editable={!isLoading}

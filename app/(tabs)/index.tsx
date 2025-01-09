@@ -18,6 +18,7 @@ import Animated, {
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useBetCount } from '../hooks/useBetCount';
+import { useTranslation } from 'react-i18next';
 
 // Mock data
 const recentWinners = [
@@ -99,6 +100,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const { betCount } = useBetCount();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const checkSubscription = async () => {

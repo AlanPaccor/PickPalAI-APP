@@ -22,7 +22,7 @@ export default function SupportScreen() {
       icon: 'message-question',
       title: 'FAQ',
       description: 'Find answers to common questions',
-      action: () => {/* Navigate to FAQ */},
+      action: () => router.push('/account/faq'),
     },
     {
       icon: 'email-outline',

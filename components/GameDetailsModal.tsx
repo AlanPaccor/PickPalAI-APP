@@ -7,6 +7,7 @@ import { Game } from '@/types/sports';
 import Colors from '@/constants/Colors';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 interface GameDetailsModalProps {
   game: Game | null;
@@ -34,6 +35,8 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   visible,
   onClose,
 }) => {
+  const { t } = useTranslation();
+  
   if (!game) return null;
 
   const handleAssistantPress = () => {
@@ -87,7 +90,7 @@ Please provide:
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <MaterialCommunityIcons name="close" size={24} color="#FFFFFF80" />
             </TouchableOpacity>
-            <ThemedText style={styles.modalTitle}>Game Details</ThemedText>
+            <ThemedText style={styles.modalTitle}>{t('gameDetails')}</ThemedText>
           </ThemedView>
 
           <ScrollView 
@@ -128,11 +131,13 @@ Please provide:
             </ThemedView>
 
             <ThemedView style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Prediction Details</ThemedText>
+              <ThemedText style={styles.sectionTitle}>{t('predictionDetails')}</ThemedText>
               <ThemedView style={styles.predictionCard}>
                 <ThemedView style={styles.predictionHeader}>
                   <MaterialCommunityIcons name="chart-line" size={20} color="#4CAF50" />
-                  <ThemedText style={styles.predictionTitle}>AI Confidence: 85%</ThemedText>
+                  <ThemedText style={styles.predictionTitle}>
+                    {t('aiConfidence', { percent: 85 })}
+                  </ThemedText>
                 </ThemedView>
                 <ThemedText style={styles.predictionDesc}>
                   Based on recent performance trends and historical data
@@ -142,11 +147,11 @@ Please provide:
 
             {/* Game Info Section */}
             <ThemedView style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Game Information</ThemedText>
+              <ThemedText style={styles.sectionTitle}>{t('gameInformation')}</ThemedText>
               <ThemedView style={styles.infoGrid}>
                 <InfoItem 
                   icon="calendar-clock"
-                  label="Game Time"
+                  label={t('gameTime')}
                   value={game.time}
                 />
                 <InfoItem 
@@ -164,7 +169,7 @@ Please provide:
                 onPress={handleAssistantPress}
               >
                 <MaterialCommunityIcons name="robot" size={24} color="#FFFFFF" />
-                <ThemedText style={styles.buttonText}>Assistant</ThemedText>
+                <ThemedText style={styles.buttonText}>{t('getAIAnalysis')}</ThemedText>
               </TouchableOpacity>
             </ThemedView>
           </ScrollView>

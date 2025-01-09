@@ -55,14 +55,14 @@ export default function AccountScreen() {
       title: 'Account Settings',
       items: [
         { 
+          icon: 'account-cog', 
+          label: 'Profile Settings', 
+          onPress: () => router.push('/account/profile')
+        },
+        { 
           icon: 'credit-card-outline', 
           label: 'Billing & Payments', 
           onPress: () => router.push('/account/billing')
-        },
-        { 
-          icon: 'chart-line', 
-          label: 'Betting Preferences', 
-          onPress: () => router.push('/account/betting-preferences')
         },
         { 
           icon: 'bell-outline', 
@@ -80,9 +80,9 @@ export default function AccountScreen() {
           onPress: () => router.push('/account/privacy')
         },
         { 
-          icon: 'translate', 
-          label: 'Language', 
-          onPress: () => router.push('/account/language')
+          icon: 'chart-line', 
+          label: 'Betting Preferences', 
+          onPress: () => router.push('/account/betting-preferences')
         },
         { 
           icon: 'help-circle-outline', 
