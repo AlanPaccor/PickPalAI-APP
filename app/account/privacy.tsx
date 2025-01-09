@@ -10,8 +10,6 @@ import { useState } from 'react';
 export default function PrivacyScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
-  const [twoFactor, setTwoFactor] = useState(false);
-  const [biometric, setBiometric] = useState(false);
   const [dataSharing, setDataSharing] = useState(true);
 
   return (
@@ -34,45 +32,33 @@ export default function PrivacyScreen() {
         <ThemedText type="title">Privacy & Security</ThemedText>
       </ThemedView>
 
-      {/* Security Section */}
-      <ThemedView style={styles.section}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Security</ThemedText>
-        
-        <ThemedView style={styles.settingItem}>
-          <ThemedView style={styles.settingContent}>
-            <ThemedText type="defaultSemiBold">Two-Factor Authentication</ThemedText>
-            <ThemedText style={styles.description}>Add an extra layer of security</ThemedText>
-          </ThemedView>
-          <Switch
-            value={twoFactor}
-            onValueChange={setTwoFactor}
-            trackColor={{ false: '#FFFFFF20', true: '#4CAF50' }}
-            thumbColor={twoFactor ? '#FFFFFF' : '#FFFFFF80'}
-          />
-        </ThemedView>
-
-        <ThemedView style={styles.settingItem}>
-          <ThemedView style={styles.settingContent}>
-            <ThemedText type="defaultSemiBold">Biometric Login</ThemedText>
-            <ThemedText style={styles.description}>Use Face ID or fingerprint</ThemedText>
-          </ThemedView>
-          <Switch
-            value={biometric}
-            onValueChange={setBiometric}
-            trackColor={{ false: '#FFFFFF20', true: '#4CAF50' }}
-            thumbColor={biometric ? '#FFFFFF' : '#FFFFFF80'}
-          />
-        </ThemedView>
+      {/* Privacy Notice */}
+      <ThemedView style={styles.noticeContainer}>
+        <MaterialCommunityIcons 
+          name="shield-check" 
+          size={32} 
+          color="#4CAF50"
+        />
+        <ThemedText style={styles.noticeTitle}>Privacy Notice</ThemedText>
+        <ThemedText style={styles.noticeText}>
+          By using this app, you agree to our privacy policy. We encrypt and securely store your betting data and personal information. We never share your individual data with third parties without your explicit consent.
+        </ThemedText>
+        <TouchableOpacity 
+          style={styles.privacyLink}
+          onPress={() => router.push('/account/privacy-policy')}
+        >
+          <ThemedText style={styles.linkText}>View Privacy Policy</ThemedText>
+        </TouchableOpacity>
       </ThemedView>
 
-      {/* Privacy Section */}
+      {/* Privacy Settings */}
       <ThemedView style={styles.section}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Privacy</ThemedText>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>Privacy Settings</ThemedText>
         
         <ThemedView style={styles.settingItem}>
           <ThemedView style={styles.settingContent}>
             <ThemedText type="defaultSemiBold">Data Sharing</ThemedText>
-            <ThemedText style={styles.description}>Share analytics to improve service</ThemedText>
+            <ThemedText style={styles.description}>Share anonymous analytics to improve service</ThemedText>
           </ThemedView>
           <Switch
             value={dataSharing}
@@ -81,7 +67,10 @@ export default function PrivacyScreen() {
             thumbColor={dataSharing ? '#FFFFFF' : '#FFFFFF80'}
           />
         </ThemedView>
+      </ThemedView>
 
+      {/* Account Actions */}
+      <ThemedView style={styles.section}>
         <TouchableOpacity style={styles.button}>
           <ThemedText style={styles.buttonText}>Delete Account</ThemedText>
         </TouchableOpacity>
@@ -110,6 +99,26 @@ const styles = StyleSheet.create({
   backButton: {
     marginRight: 16,
     padding: 4,
+  },
+  noticeContainer: {
+    padding: 20,
+    borderRadius: 12,
+    backgroundColor: '#000010',
+    borderWidth: 1,
+    borderColor: '#4CAF5040',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  noticeTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginVertical: 12,
+  },
+  noticeText: {
+    textAlign: 'center',
+    lineHeight: 22,
+    opacity: 0.8,
   },
   section: {
     marginBottom: 32,
@@ -148,5 +157,14 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 16,
+  },
+  privacyLink: {
+    marginTop: 12,
+    padding: 8,
+  },
+  linkText: {
+    color: '#1E90FF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 }); 

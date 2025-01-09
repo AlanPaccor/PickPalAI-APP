@@ -32,40 +32,41 @@ export default function AssistantScreen() {
       setIsLoading(true);
       const decodedText = decodeURIComponent(text);
       
+      let userPreferences = {
+        riskTolerance: 50,
+        communicationStyle: 'professional',
+        detailLevel: 'detailed',
+        showProbability: true,
+        showTrends: true,
+        expertOpinions: true,
+        preferredSports: ['basketball', 'football'],
+        betTypes: ['spread', 'moneyline'],
+      };
+
       if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (userDoc.exists()) {
-          const currentBets = userDoc.data().betsAnalyzed || 0;
-          await updateDoc(userDocRef, {
-            betsAnalyzed: currentBets + 1
-          });
-        } else {
-          await setDoc(userDocRef, {
-            betsAnalyzed: 1
-          });
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists() && userDoc.data().aiPreferences) {
+          userPreferences = userDoc.data().aiPreferences;
         }
       }
 
-      const systemMessage = type === 'game' 
-        ? `You are a sports prediction analyst. When analyzing game predictions:
-          1. Start with a brief overview of the prediction
-          2. Share the player's recent performance stats and trends
-          3. Analyze the matchup against the opponent
-          4. Consider any relevant factors (injuries, rest days, etc.)
-          5. Provide your confidence level in the prediction
-          6. Format important points in bold using **text**
-          7. Use clear, simple language
-          8. End with a clear recommendation`
-        : `You are a friendly sports betting assistant. Your job is to:
-          1. Break down betting tickets in simple terms
-          2. Look up and share the player's most recent performance stats
-          3. Explain what needs to happen for the bet to win
-          4. Give a simple analysis in everyday language
-          5. Avoid complex betting terminology
-          6. If you mention any stats, explain why they matter
-          7. Provide your opinion on the bet and format it in bold`;
+      const systemMessage = `You are a sports betting assistant who adapts to the user's preferences:
+      - Risk Tolerance: ${userPreferences.riskTolerance}/100 (higher means more aggressive)
+      - Communication Style: ${userPreferences.communicationStyle}
+      - Detail Level: ${userPreferences.detailLevel}
+      ${userPreferences.showProbability ? '- Include probability percentages' : ''}
+      ${userPreferences.showTrends ? '- Include relevant betting trends' : ''}
+      ${userPreferences.expertOpinions ? '- Include expert opinions' : ''}
+
+      Focus on these sports: ${userPreferences.preferredSports.join(', ')}
+      Preferred bet types: ${userPreferences.betTypes.join(', ')}
+
+      When analyzing bets:
+      1. Match the user's preferred communication style and detail level
+      2. Adjust risk recommendations based on their tolerance level
+      3. Only include probabilities, trends, and expert opinions if enabled
+      4. Focus on their preferred sports and bet types
+      5. Format important points in bold using **text**`;
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
