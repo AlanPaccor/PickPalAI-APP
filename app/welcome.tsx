@@ -40,7 +40,7 @@ export default function WelcomeScreen() {
         />
       </Animated.View>
 
-      <Animated.View style={styles.buttonSection}>
+      <Animated.View style={[styles.buttonSection, { marginBottom: insets.bottom }]}>
         <TouchableOpacity 
           style={styles.registerButton}
           onPress={() => router.push('/auth/register')}
@@ -88,10 +88,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   headerSection: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 20,
+    paddingTop: 140,
   },
   title: {
     fontSize: 32,
@@ -99,9 +99,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   featuresSection: {
-    flex: 1,
     justifyContent: 'center',
-    gap: 24,
+    gap: 20,
+    marginTop: 30,
   },
   featureItem: {
     flexDirection: 'row',
@@ -119,7 +119,8 @@ const styles = StyleSheet.create({
   },
   buttonSection: {
     gap: 16,
-    marginTop: 32,
+    marginTop: 'auto',
+    paddingVertical: 20,
   },
   registerButton: {
     backgroundColor: '#0A84FF',

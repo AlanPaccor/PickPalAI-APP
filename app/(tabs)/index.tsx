@@ -332,7 +332,7 @@ const useNotifications = (userId: string | undefined) => {
   return { notifications, loading, markAsRead };
 };
 
-export default function HomeScreen() {
+export default function IndexScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const { user } = useAuth();

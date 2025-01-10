@@ -7,8 +7,7 @@ import { db } from '../config/firebase';
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-
-const OPENAI_API_KEY = Constants.expoConfig?.extra?.OPENAI_API_KEY;
+import { OPENAI_API_KEY } from '../config/env';
 
 export default function AssistantScreen() {
   const { imageUri, type, extractedText } = useLocalSearchParams<{ 
@@ -41,34 +40,45 @@ export default function AssistantScreen() {
         showProbability: true,
         showTrends: true,
         expertOpinions: true,
-        preferredSports: ['basketball', 'football'],
-        betTypes: ['spread', 'moneyline'],
+        preferredSports: ['all'],
+        betTypes: ['all']
       };
 
       if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists() && userDoc.data().aiPreferences) {
-          userPreferences = userDoc.data().aiPreferences;
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists() && userDoc.data().aiPreferences) {
+            userPreferences = {
+              ...userPreferences,
+              ...userDoc.data().aiPreferences
+            };
+          }
+        } catch (error) {
+          console.warn('Failed to fetch user preferences:', error);
         }
       }
 
-      const systemMessage = `You are a sports betting assistant who adapts to the user's preferences:
-      - Risk Tolerance: ${userPreferences.riskTolerance}/100 (higher means more aggressive)
+      const systemMessage = `You are a sports betting assistant who analyzes betting slips and provides insights. 
+      
+      Preferences:
+      - Risk Tolerance: ${userPreferences.riskTolerance}/100
       - Communication Style: ${userPreferences.communicationStyle}
       - Detail Level: ${userPreferences.detailLevel}
       ${userPreferences.showProbability ? '- Include probability percentages' : ''}
       ${userPreferences.showTrends ? '- Include relevant betting trends' : ''}
       ${userPreferences.expertOpinions ? '- Include expert opinions' : ''}
 
-      Focus on these sports: ${userPreferences.preferredSports.join(', ')}
-      Preferred bet types: ${userPreferences.betTypes.join(', ')}
+      Sports Focus: ${userPreferences.preferredSports.join(', ')}
+      Bet Types: ${userPreferences.betTypes.join(', ')}
 
-      When analyzing bets:
-      1. Match the user's preferred communication style and detail level
-      2. Adjust risk recommendations based on their tolerance level
-      3. Only include probabilities, trends, and expert opinions if enabled
-      4. Focus on their preferred sports and bet types
-      5. Format important points in bold using **text**`;
+      When analyzing betting slips:
+      1. First confirm what you see in the betting slip
+      2. Break down each bet and provide analysis
+      3. Consider the odds and potential value
+      4. Provide clear recommendations
+      5. Format key points in bold using **text**
+
+      Here's the betting slip text to analyze: ${decodedText}`;
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -82,10 +92,6 @@ export default function AssistantScreen() {
             {
               role: "system",
               content: systemMessage
-            },
-            {
-              role: "user",
-              content: decodedText
             }
           ],
           temperature: 0.7,
@@ -93,11 +99,13 @@ export default function AssistantScreen() {
       });
 
       if (!response.ok) {
-        throw new Error('API request failed');
+        const errorData = await response.json();
+        throw new Error(`OpenAI API Error: ${JSON.stringify(errorData)}`);
       }
 
       const data = await response.json();
-      const aiResponse = data.choices[0]?.message?.content || "Sorry, I couldn't analyze that properly.";
+      const aiResponse = data.choices[0]?.message?.content || 
+        "I apologize, but I couldn't properly analyze the betting slip. Could you please verify the image is clear and try again?";
 
       setChatHistory([{
         role: 'assistant',
@@ -108,7 +116,7 @@ export default function AssistantScreen() {
       console.error('AI Processing Error:', error);
       setChatHistory([{
         role: 'assistant',
-        content: 'Sorry, I had trouble analyzing that. Please try again.'
+        content: 'I apologize, but I had trouble analyzing that betting slip. Could you please try again or type your question directly?'
       }]);
     } finally {
       setIsLoading(false);

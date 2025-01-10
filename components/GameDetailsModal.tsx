@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Platform, Pressable, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { MaterialCommunityIcons as MCIType } from '@expo/vector-icons';
 import { ThemedView } from './ThemedView';
 import { ThemedText } from './ThemedText';
 import { Game } from '@/types/sports';
@@ -16,6 +17,8 @@ interface GameDetailsModalProps {
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+type IconName = React.ComponentProps<typeof MCIType>['name'];
 
 const getSportIcon = (sportKey: string): IconName => {
   const iconMap: Record<string, IconName> = {

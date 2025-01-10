@@ -26,7 +26,7 @@ const AuthContextInternal = createContext<AuthContextType>({
   needsSubscription: false,
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
@@ -130,8 +130,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export const useAuth = () => {
   return useContext(AuthContextInternal);
-};
-
-export default function AuthContextComponent() {
-  return null;
-} 
+}; 

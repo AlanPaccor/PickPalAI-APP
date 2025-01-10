@@ -15,6 +15,7 @@ export interface Game {
   commence_time?: string;
   home_team?: string;
   away_team?: string;
+  sport: string;
 }
 
 export interface Sport {

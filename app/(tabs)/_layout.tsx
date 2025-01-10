@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { View, StyleSheet, Pressable, useColorScheme, GestureResponderEvent } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../app/context/AuthContext';
 import { Redirect } from 'expo-router';
 import Colors from '@/constants/Colors';
 import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
@@ -46,12 +46,12 @@ function AssistantIcon({ color, focused }: AssistantIconProps) {
 
 // Update the TabBarButton component to use BottomTabBarButtonProps
 export default function TabLayout() {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const { t } = useTranslation();
 
-  if (loading) return null;
+  if (isLoading) return null;
   if (!user) return <Redirect href="/auth/login" />;
 
   return (

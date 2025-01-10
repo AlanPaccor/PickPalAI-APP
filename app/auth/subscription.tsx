@@ -11,8 +11,11 @@ import { useState } from 'react';
 import { useStripe } from '@stripe/stripe-react-native';
 import { createPaymentIntent } from '../config/api';
 
+type AllowedIcons = 'chart-line' | 'robot-outline' | 'chart-timeline-variant' | 
+  'bell-outline' | 'star' | 'chart-bell-curve' | 'information' | 'percent';
+
 interface PlanFeature {
-  icon: string;
+  icon: AllowedIcons;
   text: string;
 }
 
@@ -94,74 +97,58 @@ export default function SubscriptionScreen() {
         throw new Error('No user found');
       }
 
-      if (plan.name === 'Free Trial') {
-        // Handle free trial signup
-        const subscription: UserSubscription = {
-          plan: 'Monthly', // Will convert to monthly after trial
-          startDate: new Date(),
-          trialEndDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
-          status: 'trial',
-        };
-
-        await setDoc(doc(db, 'users', user.uid), {
-          email: user.email,
-          subscription,
-        }, { merge: true });
-
-        Alert.alert(
-          'Trial Activated',
-          'Your free trial has been activated.',
-          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
-        );
-      } else {
-        // Handle paid subscriptions
-        const amount = plan.name === 'Monthly' ? 1500 : 15300; // $15.00 or $153.00
-        
-        // Get payment intent from your backend
-        const clientSecret = await createPaymentIntent(amount);
-        
-        // Initialize payment sheet
-        const { error: initError } = await stripe.initPaymentSheet({
-          paymentIntentClientSecret: clientSecret,
-          merchantDisplayName: 'Oddsly',
-          defaultBillingDetails: {
-            email: user.email || undefined,
-          }
-        });
-
-        if (initError) {
-          throw new Error(initError.message);
+      // Handle both trial and paid subscriptions through Stripe
+      const amount = plan.name === 'Free Trial' ? 1500 : (plan.name === 'Monthly' ? 1500 : 15300);
+      
+      // Get payment intent from your backend
+      const clientSecret = await createPaymentIntent(amount);
+      
+      // Initialize payment sheet
+      const { error: initError } = await stripe.initPaymentSheet({
+        paymentIntentClientSecret: clientSecret,
+        merchantDisplayName: 'Oddsly',
+        defaultBillingDetails: {
+          email: user.email || undefined,
         }
+      });
 
-        // Present payment sheet
-        const { error: presentError } = await stripe.presentPaymentSheet();
-        
-        if (presentError) {
-          if (presentError.code === 'Canceled') {
-            throw new Error('Payment cancelled');
-          }
-          throw new Error(presentError.message);
-        }
-
-        // Payment successful, update subscription
-        const subscription: UserSubscription = {
-          plan: plan.name as 'Monthly' | 'Annual',
-          startDate: new Date(),
-          trialEndDate: new Date(), // No trial for paid plans
-          status: 'active',
-        };
-
-        await setDoc(doc(db, 'users', user.uid), {
-          email: user.email,
-          subscription,
-        }, { merge: true });
-
-        Alert.alert(
-          'Payment Successful',
-          'Your subscription has been activated.',
-          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
-        );
+      if (initError) {
+        throw new Error(initError.message);
       }
+
+      // Present payment sheet
+      const { error: presentError } = await stripe.presentPaymentSheet();
+      
+      if (presentError) {
+        if (presentError.code === 'Canceled') {
+          throw new Error('Payment cancelled');
+        }
+        throw new Error(presentError.message);
+      }
+
+      // Payment successful, update subscription
+      const subscription: UserSubscription = {
+        plan: plan.name === 'Free Trial' ? 'Monthly' : (plan.name as 'Monthly' | 'Annual'),
+        startDate: new Date(),
+        trialEndDate: plan.name === 'Free Trial' 
+          ? new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) // 2 days from now
+          : new Date(), // No trial for direct paid plans
+        status: plan.name === 'Free Trial' ? 'trial' : 'active',
+      };
+
+      await setDoc(doc(db, 'users', user.uid), {
+        email: user.email,
+        subscription,
+      }, { merge: true });
+
+      Alert.alert(
+        plan.name === 'Free Trial' ? 'Trial Activated' : 'Payment Successful',
+        plan.name === 'Free Trial' 
+          ? 'Your free trial has been activated. Your card will be charged $15/month after the trial period.'
+          : 'Your subscription has been activated.',
+        [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+      );
+
     } catch (error) {
       let message = 'Failed to process payment';
       if (error instanceof Error) {

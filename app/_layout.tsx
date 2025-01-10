@@ -3,6 +3,7 @@ import { useColorScheme, StatusBar, View } from 'react-native';
 import Colors from '@/constants/Colors';
 import Providers from './providers';
 import { useAuth } from './context/AuthContext';
+import AuthProvider from './context/AuthContext';
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -73,8 +74,8 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <Providers>
+    <AuthProvider>
       <RootLayoutNav />
-    </Providers>
+    </AuthProvider>
   );
 }
