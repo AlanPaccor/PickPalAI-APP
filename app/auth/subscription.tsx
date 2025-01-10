@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db, auth } from '../config/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
+import { useStripe } from '@stripe/stripe-react-native';
+import { createPaymentIntent } from '../config/api';
 
 interface PlanFeature {
   icon: string;
@@ -34,6 +36,7 @@ interface UserSubscription {
 export default function SubscriptionScreen() {
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
+  const stripe = useStripe();
 
   const plans: SubscriptionPlan[] = [
     {
@@ -91,39 +94,86 @@ export default function SubscriptionScreen() {
         throw new Error('No user found');
       }
 
-      const now = new Date();
-      const subscription: UserSubscription = {
-        plan: plan.name === 'Free Trial' ? 'Monthly' : (plan.name as 'Monthly' | 'Annual'),
-        startDate: now,
-        trialEndDate: plan.name === 'Free Trial' ? new Date(now.getTime() + (2 * 24 * 60 * 60 * 1000)) : now,
-        status: plan.name === 'Free Trial' ? 'trial' : 'active',
-      };
-
-      await setDoc(doc(db, 'users', user.uid), {
-        email: user.email,
-        subscription,
-      }, { merge: true });
-
       if (plan.name === 'Free Trial') {
+        // Handle free trial signup
+        const subscription: UserSubscription = {
+          plan: 'Monthly', // Will convert to monthly after trial
+          startDate: new Date(),
+          trialEndDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+          status: 'trial',
+        };
+
+        await setDoc(doc(db, 'users', user.uid), {
+          email: user.email,
+          subscription,
+        }, { merge: true });
+
         Alert.alert(
-          'Trial Started',
-          'Your 2-day free trial has started. It will automatically convert to a monthly plan ($15/month) unless cancelled.',
+          'Trial Activated',
+          'Your free trial has been activated.',
           [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
         );
       } else {
+        // Handle paid subscriptions
+        const amount = plan.name === 'Monthly' ? 1500 : 15300; // $15.00 or $153.00
+        
+        // Get payment intent from your backend
+        const clientSecret = await createPaymentIntent(amount);
+        
+        // Initialize payment sheet
+        const { error: initError } = await stripe.initPaymentSheet({
+          paymentIntentClientSecret: clientSecret,
+          merchantDisplayName: 'Oddsly',
+          defaultBillingDetails: {
+            email: user.email || undefined,
+          }
+        });
+
+        if (initError) {
+          throw new Error(initError.message);
+        }
+
+        // Present payment sheet
+        const { error: presentError } = await stripe.presentPaymentSheet();
+        
+        if (presentError) {
+          if (presentError.code === 'Canceled') {
+            throw new Error('Payment cancelled');
+          }
+          throw new Error(presentError.message);
+        }
+
+        // Payment successful, update subscription
+        const subscription: UserSubscription = {
+          plan: plan.name as 'Monthly' | 'Annual',
+          startDate: new Date(),
+          trialEndDate: new Date(), // No trial for paid plans
+          status: 'active',
+        };
+
+        await setDoc(doc(db, 'users', user.uid), {
+          email: user.email,
+          subscription,
+        }, { merge: true });
+
         Alert.alert(
-          'Payment Required',
-          'This would typically open a payment flow. For now, we\'ll proceed as if payment was successful.',
+          'Payment Successful',
+          'Your subscription has been activated.',
           [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
         );
       }
     } catch (error) {
-      Alert.alert(
-        'Error',
-        'Failed to process request. Please try again.',
-        [{ text: 'OK' }]
-      );
-      console.error('Subscription error:', error);
+      let message = 'Failed to process payment';
+      if (error instanceof Error) {
+        message = error.message;
+        if (message.includes('Canceled')) {
+          // Don't show alert for user cancellation
+          setLoading(false);
+          return;
+        }
+      }
+      Alert.alert('Error', message, [{ text: 'OK' }]);
+      console.error('Payment error:', error);
     } finally {
       setLoading(false);
     }

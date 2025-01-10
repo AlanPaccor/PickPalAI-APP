@@ -1,46 +1,69 @@
 import React, { createContext, useContext, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import { initializeI18n } from '../i18n';
+import { ActivityIndicator, Modal, StyleSheet, View } from 'react-native';
+import { ThemedText } from '@/components/ThemedText';
+import i18n from '../i18n';
 
 interface LoadingContextType {
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  loadingText?: string;
+  setLoadingText: (text?: string) => void;
 }
 
 const LoadingContext = createContext<LoadingContextType>({
-  isLoading: true,
+  isLoading: false,
   setIsLoading: () => {},
+  loadingText: undefined,
+  setLoadingText: () => {},
 });
 
-export const LoadingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isLoading, setIsLoading] = useState(true);
+export const useLoading = () => useContext(LoadingContext);
 
-  React.useEffect(() => {
-    const init = async () => {
-      try {
-        await initializeI18n();
-      } catch (error) {
-        console.error('Failed to initialize i18n:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    init();
-  }, []);
-
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000010' }}>
-        <ActivityIndicator size="large" color="#0A84FF" />
-      </View>
-    );
-  }
+export function LoadingProvider({ children }: { children: React.ReactNode }) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState<string>();
 
   return (
-    <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
+    <LoadingContext.Provider
+      value={{
+        isLoading,
+        setIsLoading,
+        loadingText,
+        setLoadingText,
+      }}
+    >
       {children}
+      <Modal visible={isLoading} transparent>
+        <View style={styles.container}>
+          <View style={styles.loader}>
+            <ActivityIndicator size="large" color="#0A84FF" />
+            {loadingText && (
+              <ThemedText style={styles.text}>
+                {loadingText}
+              </ThemedText>
+            )}
+          </View>
+        </View>
+      </Modal>
     </LoadingContext.Provider>
   );
-};
+}
 
-export const useLoading = () => useContext(LoadingContext); 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loader: {
+    backgroundColor: '#1C1C1E',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  text: {
+    marginTop: 10,
+    fontSize: 16,
+  },
+}); 

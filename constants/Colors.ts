@@ -13,7 +13,7 @@ export default {
   },
   dark: {
     text: '#fff',
-    background: '#000010',
+    background: '#000',
     tint: '#1E90FF',
     tabIconDefault: '#ccc',
     tabIconSelected: '#1E90FF',

@@ -3,6 +3,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { MaterialCommunityIcons as IconType } from '@expo/vector-icons';
 import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -16,26 +17,26 @@ export default function WelcomeScreen() {
       <Animated.View style={styles.headerSection}>
         <MaterialCommunityIcons name="chart-line" size={80} color="#0A84FF" />
         <ThemedText type="title" style={styles.title}>
-          {t('welcomeTitle')}
+          {t('Your Sports Betting Assistant')}
         </ThemedText>
       </Animated.View>
 
       <Animated.View style={styles.featuresSection}>
         <FeatureItem 
           icon="chart-bell-curve" 
-          text={t('featureAIPredictions')}
+          text={t('AI-Powered Predictions & Analysis')}
         />
         <FeatureItem 
           icon="chart-timeline-variant" 
-          text={t('featureTracking')}
+          text={t('Track Your Betting Performance')}
         />
         <FeatureItem 
           icon="robot-outline" 
-          text={t('featureAIChat')}
+          text={t('24/7 AI Betting Assistant')}
         />
         <FeatureItem 
           icon="bell-outline" 
-          text={t('featureNotifications')}
+          text={t('Real-time Betting Alerts')}
         />
       </Animated.View>
 
@@ -45,7 +46,7 @@ export default function WelcomeScreen() {
           onPress={() => router.push('/auth/register')}
         >
           <ThemedText style={styles.buttonText}>
-            {t('createAccount')}
+            {t('Get Started Free')}
           </ThemedText>
         </TouchableOpacity>
 
@@ -54,7 +55,7 @@ export default function WelcomeScreen() {
           onPress={() => router.push('/auth/login')}
         >
           <ThemedText style={styles.loginText}>
-            {t('alreadyHaveAccount')}
+            {t('Sign In to Your Account')}
           </ThemedText>
         </TouchableOpacity>
       </Animated.View>
@@ -62,7 +63,10 @@ export default function WelcomeScreen() {
   );
 }
 
-function FeatureItem({ icon, text }: { icon: string, text: string }) {
+function FeatureItem({ icon, text }: { 
+  icon: keyof typeof IconType.glyphMap, 
+  text: string 
+}) {
   return (
     <View style={styles.featureItem}>
       <MaterialCommunityIcons 

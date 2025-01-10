@@ -24,6 +24,8 @@
     "@react-native-ml-kit/text-recognition": "^1.5.2",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
+    "@stripe/stripe-react-native": "0.38.6",
+    "@vercel/node": "^5.0.2",
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
     "expo": "~52.0.23",
@@ -37,6 +39,7 @@
     "expo-image-manipulator": "~13.0.5",
     "expo-image-picker": "~16.0.3",
     "expo-linking": "~7.0.3",
+    "expo-localization": "~16.0.0",
     "expo-router": "~4.0.15",
     "expo-secure-store": "~14.0.0",
     "expo-splash-screen": "~0.29.18",
@@ -47,6 +50,7 @@
     "expo-vision": "^0.0.0",
     "expo-web-browser": "~14.0.1",
     "firebase": "^11.1.0",
+    "i18n-js": "^4.5.1",
     "i18next": "^24.2.1",
     "lodash": "^4.17.21",
     "react": "18.3.1",
@@ -62,8 +66,8 @@
     "react-native-vision-camera": "^4.6.3",
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
-    "tesseract.js": "^6.0.0",
-    "expo-localization": "~16.0.0"
+    "stripe": "^17.5.0",
+    "tesseract.js": "^6.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -75,8 +79,14 @@
     "jest": "^29.2.1",
     "jest-expo": "~52.0.2",
     "react-native-dotenv": "^3.4.11",
+    "react-native-svg": "^15.11.1",
+    "react-native-svg-transformer": "^1.5.0",
     "react-test-renderer": "18.3.1",
     "typescript": "^5.3.3"
   },
-  "private": true
+  "private": true,
+  "description": "<<<<<<< HEAD\r # Welcome to your Expo app 👋",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

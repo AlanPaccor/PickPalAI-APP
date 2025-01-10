@@ -1,0 +1,16 @@
+{
+    "name": "oddsly-api",
+    "version": "1.0.0",
+    "private": true,
+    "engines": {
+      "node": "^20.x"
+    },
+    "dependencies": {
+      "@vercel/node": "^3.0.0",
+      "stripe": "^13.0.0"
+    },
+    "devDependencies": {
+      "@types/node": "^20.0.0",
+      "typescript": "^5.0.0"
+    }
+  }
