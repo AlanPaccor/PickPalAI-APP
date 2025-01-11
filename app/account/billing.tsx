@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   planCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
     borderWidth: 1,
     borderColor: '#FFFFFF20',
   },
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   paymentCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
     borderWidth: 1,
     borderColor: '#FFFFFF20',
   },
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   },
   historyCard: {
     borderRadius: 12,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
     borderWidth: 1,
     borderColor: '#FFFFFF20',
   },

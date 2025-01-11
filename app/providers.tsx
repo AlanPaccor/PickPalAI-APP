@@ -1,7 +1,5 @@
 import { AuthProvider } from './context/AuthContext';
 import { StripeProvider } from '@stripe/stripe-react-native';
-import { initializeStripe } from './config/stripe';
-import { useEffect } from 'react';
 import ENV from './config/env';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
@@ -23,19 +21,12 @@ i18n
   });
 
 const Providers = ({ children }: { children: React.ReactNode }) => {
-  useEffect(() => {
-    initializeStripe();
-  }, []);
-
   return (
     <StripeProvider
-      publishableKey={ENV.STRIPE_PUBLISHABLE_KEY || ''}
-      merchantIdentifier="merchant.com.sportsbetapp"
-      urlScheme="sportsbetapp"
+      publishableKey={ENV.STRIPE_PUBLISHABLE_KEY}
+      merchantIdentifier="merchant.com.oddsly"
     >
-      <AuthProvider>
-        {children}
-      </AuthProvider>
+      {children}
     </StripeProvider>
   );
 };

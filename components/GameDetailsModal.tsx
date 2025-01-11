@@ -93,7 +93,7 @@ Please provide:
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <MaterialCommunityIcons name="close" size={24} color="#FFFFFF80" />
             </TouchableOpacity>
-            <ThemedText style={styles.modalTitle}>{t('gameDetails')}</ThemedText>
+            <ThemedText style={styles.modalTitle}>{t('Game Details')}</ThemedText>
           </ThemedView>
 
           <ScrollView 
@@ -139,7 +139,7 @@ Please provide:
                 <ThemedView style={styles.predictionHeader}>
                   <MaterialCommunityIcons name="chart-line" size={20} color="#4CAF50" />
                   <ThemedText style={styles.predictionTitle}>
-                    {t('aiConfidence', { percent: 85 })}
+                    {t('AI Confidence', { percent: 85 })}
                   </ThemedText>
                 </ThemedView>
                 <ThemedText style={styles.predictionDesc}>
@@ -150,11 +150,11 @@ Please provide:
 
             {/* Game Info Section */}
             <ThemedView style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>{t('gameInformation')}</ThemedText>
+              <ThemedText style={styles.sectionTitle}>{t('Game Information')}</ThemedText>
               <ThemedView style={styles.infoGrid}>
                 <InfoItem 
                   icon="calendar-clock"
-                  label={t('gameTime')}
+                  label={t('Game Time')}
                   value={game.time}
                 />
                 <InfoItem 
@@ -172,7 +172,7 @@ Please provide:
                 onPress={handleAssistantPress}
               >
                 <MaterialCommunityIcons name="robot" size={24} color="#FFFFFF" />
-                <ThemedText style={styles.buttonText}>{t('getAIAnalysis')}</ThemedText>
+                <ThemedText style={styles.buttonText}>{t('Get AI Analysis')}</ThemedText>
               </TouchableOpacity>
             </ThemedView>
           </ScrollView>

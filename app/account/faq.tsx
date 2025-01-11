@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   faqItem: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
     borderWidth: 1,
     borderColor: '#FFFFFF20',
     marginBottom: 12,
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   supportSection: {
     padding: 24,
     borderRadius: 12,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
     borderWidth: 1,
     borderColor: '#FFFFFF20',
     alignItems: 'center',

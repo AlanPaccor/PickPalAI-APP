@@ -220,9 +220,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     marginBottom: 32,
     backgroundColor: Platform.select({ 
-      ios: '#00000010', 
-      android: '#00000010', 
-      web: '#00000010' 
+      ios: '#000010', 
+      android: '#000010', 
+      web: '#000010' 
     }),
     borderRadius: 12,
     padding: 16,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF20',
     borderRadius: 12,
     padding: 16,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
   },
   section: {
     marginBottom: 24,

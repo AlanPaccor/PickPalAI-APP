@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF20',
     borderRadius: 12,
     marginBottom: 12,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
   },
   notificationContent: {
     flex: 1,

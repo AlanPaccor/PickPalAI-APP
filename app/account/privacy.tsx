@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF20',
     borderRadius: 12,
     marginBottom: 12,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
   },
   settingContent: {
     flex: 1,
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
   },
   verificationInput: {
-    backgroundColor: '#00000020',
+    backgroundColor: '#000020',
     borderWidth: 1,
     borderColor: '#FFFFFF20',
     borderRadius: 8,

@@ -1,11 +1,12 @@
-import { initStripe } from '@stripe/stripe-react-native';
-
-const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY!;
+import { PaymentConfiguration } from '@stripe/stripe-react-native';
+import ENV from './env';
 
 export const initializeStripe = async () => {
-  await initStripe({
-    publishableKey: STRIPE_PUBLISHABLE_KEY,
-    merchantIdentifier: 'merchant.com.sportsbetapp',
-    urlScheme: 'sportsbetapp',
-  });
+  try {
+    await PaymentConfiguration.init({
+      publishableKey: ENV.STRIPE_PUBLISHABLE_KEY,
+    });
+  } catch (error) {
+    console.error('Failed to initialize Stripe:', error);
+  }
 }; 

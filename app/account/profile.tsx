@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FFFFFF20',
     borderRadius: 12,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
   },
   sectionTitle: {
     marginBottom: 16,
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   changeButton: {
-    backgroundColor: '#00000020',
+    backgroundColor: '#000020',
     padding: 8,
     borderRadius: 8,
     borderWidth: 1,

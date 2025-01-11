@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#FFFFFF20',
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
   },
   sectionTitle: {
     fontSize: 18,

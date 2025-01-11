@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
     borderRadius: 12,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
     borderWidth: 1,
     borderColor: '#4CAF5040',
     marginBottom: 24,
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF20',
     borderRadius: 12,
     marginBottom: 12,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
   },
   optionIcon: {
     width: 40,
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   supportHours: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
     borderWidth: 1,
     borderColor: '#FFFFFF20',
   },

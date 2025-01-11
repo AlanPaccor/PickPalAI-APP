@@ -17,7 +17,9 @@ export const FIREBASE_CONFIG = {
 };
 
 // Stripe
-export const STRIPE_PUBLISHABLE_KEY = extra.STRIPE_PUBLISHABLE_KEY as string;
+export const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || 
+  extra.STRIPE_PUBLISHABLE_KEY || 
+  'pk_test_51...'; // Your actual test publishable key here
 export const STRIPE_SECRET_KEY = extra.STRIPE_SECRET_KEY as string;
 
 // Google Cloud Vision

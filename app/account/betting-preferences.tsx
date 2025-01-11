@@ -162,7 +162,7 @@ export default function BettingPreferencesScreen() {
           <Slider
             style={styles.slider}
             value={calculateRiskTolerance(preferences)}
-            enabled={false}
+            disabled={true}
             minimumValue={0}
             maximumValue={100}
             minimumTrackTintColor="#4CAF50"
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FFFFFF20',
     borderRadius: 12,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
   },
   slider: {
     height: 40,
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF20',
     borderRadius: 12,
     marginBottom: 12,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
   },
   selectedOption: {
     borderColor: '#4CAF50',
