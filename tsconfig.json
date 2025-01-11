@@ -1,19 +1,13 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "target": "es2017",
-    "module": "commonjs",
     "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
     "baseUrl": ".",
     "paths": {
       "@/*": [
+        "./*"
+      ],
+      "~/*": [
         "./*"
       ]
     }
@@ -21,8 +15,5 @@
   "include": [
     "**/*.ts",
     "**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules"
   ]
 }

@@ -5,11 +5,71 @@ import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from 'react-native';
 import Colors from '@/constants/Colors';
 import { router } from 'expo-router';
+import { useSubscription } from '../hooks/useSubscription';
+import { Alert, ActivityIndicator } from 'react-native';
+import { format } from 'date-fns';
 
 export default function BillingScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  const { 
+    subscription, 
+    billingHistory, 
+    loading,
+    changePlan,
+    cancelSubscription 
+  } = useSubscription();
 
+  const handleChangePlan = async () => {
+    try {
+      // Navigate to plan selection screen
+      router.push('/auth/subscription');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to change plan. Please try again.');
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    Alert.alert(
+      'Cancel Subscription',
+      'Are you sure you want to cancel your subscription? You\'ll still have access until the end of your billing period.',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await cancelSubscription();
+              Alert.alert('Success', 'Your subscription has been cancelled.');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to cancel subscription. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const formatDate = (timestamp: number | undefined) => {
+    if (!timestamp) return 'N/A';
+    try {
+      return format(timestamp * 1000, 'MMMM d, yyyy');
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'N/A';
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={theme.tint} />
+      </View>
+    );
+  }
+
+  // Update the return statement to use subscription data
   return (
     <ScrollView 
       style={styles.container}
@@ -34,32 +94,27 @@ export default function BillingScreen() {
         <ThemedText type="subtitle" style={styles.sectionTitle}>Current Plan</ThemedText>
         <ThemedView style={styles.planCard}>
           <ThemedView style={styles.planHeader}>
-            <ThemedText type="defaultSemiBold">Premium Plan</ThemedText>
-            <ThemedView style={styles.statusBadge}>
-              <ThemedText style={styles.statusText}>Active</ThemedText>
+            <ThemedText type="defaultSemiBold">
+              {subscription?.planName || 'No active plan'}
+            </ThemedText>
+            <ThemedView style={[
+              styles.statusBadge,
+              { backgroundColor: subscription?.status === 'active' ? '#4CAF50' : '#FF3B30' }
+            ]}>
+              <ThemedText style={styles.statusText}>
+                {subscription?.status === 'active' ? 'Active' : 'Inactive'}
+              </ThemedText>
             </ThemedView>
           </ThemedView>
-          <ThemedText style={styles.price}>$19.99/month</ThemedText>
-          <ThemedText style={styles.renewalInfo}>
-            Next billing date: March 15, 2024
+          <ThemedText style={styles.price}>
+            ${subscription?.price || 0}/month
           </ThemedText>
-        </ThemedView>
-      </ThemedView>
-
-      {/* Payment Method */}
-      <ThemedView style={styles.section}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Payment Method</ThemedText>
-        <ThemedView style={styles.paymentCard}>
-          <ThemedView style={styles.paymentMethod}>
-            <MaterialCommunityIcons name="credit-card" size={24} color={theme.tint} />
-            <ThemedView style={styles.cardInfo}>
-              <ThemedText type="defaultSemiBold">•••• 4242</ThemedText>
-              <ThemedText style={styles.expiryDate}>Expires 12/24</ThemedText>
-            </ThemedView>
-          </ThemedView>
-          <TouchableOpacity style={styles.updateButton}>
-            <ThemedText style={styles.buttonText}>Update</ThemedText>
-          </TouchableOpacity>
+          <ThemedText style={styles.renewalInfo}>
+            {subscription?.cancelAtPeriodEnd 
+              ? `Access until ${formatDate(subscription.currentPeriodEnd)}`
+              : `Next billing date: ${formatDate(subscription?.currentPeriodEnd)}`
+            }
+          </ThemedText>
         </ThemedView>
       </ThemedView>
 
@@ -67,30 +122,40 @@ export default function BillingScreen() {
       <ThemedView style={styles.section}>
         <ThemedText type="subtitle" style={styles.sectionTitle}>Billing History</ThemedText>
         <ThemedView style={styles.historyCard}>
-          <ThemedView style={styles.historyItem}>
-            <ThemedView>
-              <ThemedText type="defaultSemiBold">Premium Plan</ThemedText>
-              <ThemedText style={styles.historyDate}>Feb 15, 2024</ThemedText>
+          {billingHistory.map((item) => (
+            <ThemedView key={item.id} style={styles.historyItem}>
+              <ThemedView>
+                <ThemedText type="defaultSemiBold">{item.description}</ThemedText>
+                <ThemedText style={styles.historyDate}>
+                  {formatDate(item.created)}
+                </ThemedText>
+              </ThemedView>
+              <ThemedText type="defaultSemiBold">${item.amount}</ThemedText>
             </ThemedView>
-            <ThemedText type="defaultSemiBold">$19.99</ThemedText>
-          </ThemedView>
-          <ThemedView style={styles.historyItem}>
-            <ThemedView>
-              <ThemedText type="defaultSemiBold">Premium Plan</ThemedText>
-              <ThemedText style={styles.historyDate}>Jan 15, 2024</ThemedText>
+          ))}
+          {billingHistory.length === 0 && (
+            <ThemedView style={styles.emptyState}>
+              <ThemedText>No billing history available</ThemedText>
             </ThemedView>
-            <ThemedText type="defaultSemiBold">$19.99</ThemedText>
-          </ThemedView>
+          )}
         </ThemedView>
       </ThemedView>
 
       {/* Actions */}
       <ThemedView style={styles.section}>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={handleChangePlan}
+        >
           <ThemedText style={styles.actionButtonText}>Change Plan</ThemedText>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionButton, styles.cancelButton]}>
-          <ThemedText style={styles.cancelButtonText}>Cancel Subscription</ThemedText>
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.cancelButton]}
+          onPress={handleCancelSubscription}
+        >
+          <ThemedText style={styles.cancelButtonText}>
+            {subscription?.cancelAtPeriodEnd ? 'Subscription Cancelled' : 'Cancel Subscription'}
+          </ThemedText>
         </TouchableOpacity>
       </ThemedView>
     </ScrollView>
@@ -225,5 +290,13 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     fontWeight: '600',
     fontSize: 16,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyState: {
+    padding: 16,
+    alignItems: 'center',
   },
 }); 

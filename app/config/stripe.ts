@@ -1,12 +1,11 @@
-import { PaymentConfiguration } from '@stripe/stripe-react-native';
-import ENV from './env';
+import { loadStripe } from '@stripe/stripe-js';
+import Constants from 'expo-constants';
 
-export const initializeStripe = async () => {
-  try {
-    await PaymentConfiguration.init({
-      publishableKey: ENV.STRIPE_PUBLISHABLE_KEY,
-    });
-  } catch (error) {
-    console.error('Failed to initialize Stripe:', error);
+let stripePromise: Promise<any> | null = null;
+
+export const getStripe = () => {
+  if (!stripePromise) {
+    stripePromise = loadStripe(Constants.expoConfig?.extra?.stripePublishableKey);
   }
+  return stripePromise;
 }; 
