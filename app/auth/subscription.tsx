@@ -49,17 +49,19 @@ export default function SubscriptionScreen() {
 
   const plans: SubscriptionPlan[] = [
     {
-      name: 'Free Trial',
-      price: '$0',
-      interval: '2 days',
+      name: 'Trial Plan',
+      price: '$1.50',
+      interval: 'first 3 days',
+      popular: true,
       features: [
+        { icon: 'percent', text: 'Special trial offer - 90% off!' },
         { icon: 'chart-line', text: 'Unlimited predictions' },
         { icon: 'robot-outline', text: 'Advanced AI analysis' },
         { icon: 'chart-timeline-variant', text: 'Full stats access' },
         { icon: 'bell-outline', text: 'Priority notifications' },
         { icon: 'star', text: 'Expert picks' },
         { icon: 'chart-bell-curve', text: 'Trend analysis' },
-        { icon: 'information', text: 'Converts to $15/month after trial' },
+        { icon: 'information', text: 'Then $15/month after trial' },
       ],
     },
     {
@@ -104,29 +106,29 @@ export default function SubscriptionScreen() {
       }
 
       // For free trial, we'll create a subscription with a trial period
-      if (plan.name === 'Free Trial') {
+      if (plan.name === 'Trial Plan') {
         try {
-          const amount = 1500; // $15.00 in cents
+          const amount = 1500; // Regular price: $15.00 in cents
           
-          console.log('Creating free trial subscription:', {
+          console.log('Creating trial subscription:', {
             interval: 'month',
             amount,
-            trialPeriodDays: 2
+            isTrialPeriod: true,
+            email: user.email
           });
           
           const response = await createPaymentIntent('month', amount, {
-            trialPeriodDays: 2
+            isTrialPeriod: true,
+            email: user.email
           });
           
           if (!response?.clientSecret || !response?.subscriptionId) {
-            throw new Error('Invalid response: Missing required fields');
+            throw new Error('Failed to create subscription');
           }
-
-          const { clientSecret, subscriptionId } = response;
 
           // Initialize payment sheet
           const { error: initError } = await stripe.initPaymentSheet({
-            paymentIntentClientSecret: clientSecret,
+            paymentIntentClientSecret: response.clientSecret,
             merchantDisplayName: 'Oddsly',
             defaultBillingDetails: {
               email: user.email || undefined,
@@ -149,33 +151,28 @@ export default function SubscriptionScreen() {
             throw new Error(presentError.message);
           }
 
-          // Payment successful, update subscription
+          // Payment method setup successful, update subscription
           const subscription: UserSubscription = {
             plan: 'Monthly',
             startDate: new Date(),
-            trialEndDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+            trialEndDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
             status: 'trial',
-            stripeSubscriptionId: subscriptionId,
+            stripeSubscriptionId: response.subscriptionId,
           };
 
-          // Only proceed with Firestore update if we have a valid subscriptionId
-          if (subscriptionId) {
-            await setDoc(doc(db, 'users', user.uid), {
-              email: user.email,
-              subscription,
-            }, { merge: true });
-          } else {
-            throw new Error('No subscription ID received');
-          }
+          await setDoc(doc(db, 'users', user.uid), {
+            email: user.email,
+            subscription,
+          }, { merge: true });
 
-          // Show success message
           Alert.alert(
-            'Thank You!',
-            'Welcome to Oddsly! Your free trial has been activated. Enjoy unlimited access to all our premium features for the next 2 days.',
+            'Trial Started!',
+            'Your 3-day trial has started at 90% off! After 3 days, your subscription will automatically continue at $15/month.',
             [{ text: 'Start Using Oddsly', onPress: () => router.replace('/(tabs)') }]
           );
+
         } catch (error) {
-          console.error('Payment intent creation error:', error);
+          console.error('Subscription error:', error);
           throw error;
         }
       } else {
@@ -185,10 +182,13 @@ export default function SubscriptionScreen() {
         
         console.log('Creating paid subscription:', {
           interval,
-          amount
+          amount,
+          email: user.email
         });
         
-        const response = await createPaymentIntent(interval, amount);
+        const response = await createPaymentIntent(interval, amount, {
+          email: user.email
+        });
         
         if (!response?.clientSecret || !response?.subscriptionId) {
           throw new Error('Failed to create subscription');
@@ -297,7 +297,9 @@ export default function SubscriptionScreen() {
             >
               {plan.popular && (
                 <View style={styles.popularBadge}>
-                  <ThemedText style={styles.popularText}>Save 15%</ThemedText>
+                  <ThemedText style={styles.popularText}>
+                    {plan.name === 'Trial Plan' ? '90% Off' : 'Save 15%'}
+                  </ThemedText>
                 </View>
               )}
 

@@ -3,13 +3,14 @@
     "builds": [
       {
         "src": "api/**/*.ts",
-        "use": "@vercel/node@3",
-        "config": {
-          "maxDuration": 10
-        }
+        "use": "@vercel/node"
       }
     ],
     "routes": [
+      {
+        "src": "/api/create-payment-intent",
+        "dest": "/api/create-payment-intent.ts"
+      },
       {
         "src": "/api/(.*)",
         "dest": "/api/$1.ts"

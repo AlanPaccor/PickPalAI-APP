@@ -1,16 +1,30 @@
 import Stripe from 'stripe';
 import { config } from './env';
 
-// Make sure we're using the secret key, not the publishable key
+if (!config.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY is not defined');
+}
+
+// Add debug logging
+console.log('Initializing Stripe with key:', {
+  keyLength: config.STRIPE_SECRET_KEY.length,
+  keyPrefix: config.STRIPE_SECRET_KEY.substring(0, 3)
+});
+
 export const stripe = new Stripe(config.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-08-16', // Change back to supported version
+  apiVersion: '2023-08-16',
+  typescript: true,
 });
 
 // Verify Stripe configuration on startup
 stripe.customers.list({ limit: 1 }).then(() => {
-  console.log('Stripe configuration verified successfully');
+  console.log('✅ Stripe configuration verified successfully');
 }).catch((error) => {
-  console.error('Stripe configuration error:', error);
+  console.error('❌ Stripe configuration error:', {
+    message: error.message,
+    type: error.type
+  });
+  throw error;
 });
 
 export const ensureProduct = async () => {

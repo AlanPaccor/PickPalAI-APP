@@ -1,103 +1,148 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import Stripe from 'stripe';
 import { stripe } from '../config/stripe';
-import { config } from '../config/env';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const getProductId = (interval: string, isTrial: boolean): string => {
-  if (!config.STRIPE_PRODUCT_ID_TRIAL || !config.STRIPE_PRODUCT_ID_ANNUAL || !config.STRIPE_PRODUCT_ID_MONTHLY) {
-    throw new Error('Missing required Stripe product IDs in environment variables');
-  }
-
-  if (isTrial) {
-    return config.STRIPE_PRODUCT_ID_TRIAL;
-  }
-  return interval === 'year' 
-    ? config.STRIPE_PRODUCT_ID_ANNUAL 
-    : config.STRIPE_PRODUCT_ID_MONTHLY;
-};
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
   try {
-    const { amount, currency = 'usd', interval, trialPeriodDays } = req.body;
+    const { amount, interval, isTrialPeriod } = req.body;
+    console.log('Request params:', { amount, interval, isTrialPeriod });
 
-    if (!amount) {
-      return res.status(400).json({ message: 'Amount is required' });
+    // Validate input
+    if (!amount || !interval) {
+      throw new Error('Amount and interval are required');
     }
 
-    // Create a customer first
+    // Create a customer
     const customer = await stripe.customers.create();
-    console.log('Created customer:', customer.id);
 
-    // For trial subscriptions, we'll use the monthly price
-    const priceData: Stripe.PriceCreateParams = {
-      currency,
-      product: getProductId(interval, !!trialPeriodDays),
-      unit_amount: trialPeriodDays ? 1500 : amount, // Use monthly price for trials
+    // Create a product
+    const product = await stripe.products.create({
+      name: 'Oddsly Subscription',
+      type: 'service',
+    });
+
+    // For trial period, create two prices: trial price and regular price
+    if (isTrialPeriod) {
+      // Create the trial price (90% off)
+      const trialPrice = await stripe.prices.create({
+        product: product.id,
+        unit_amount: 150, // $1.50 in cents
+        currency: 'usd',
+        recurring: {
+          interval: 'day',
+          interval_count: 3, // 3-day trial period
+        },
+      });
+
+      // Create the regular price
+      const regularPrice = await stripe.prices.create({
+        product: product.id,
+        unit_amount: amount,
+        currency: 'usd',
+        recurring: {
+          interval: interval as 'month' | 'year',
+        },
+      });
+
+      // Create subscription with scheduled updates
+      const subscription = await stripe.subscriptions.create({
+        customer: customer.id,
+        items: [{ price: trialPrice.id }],
+        payment_behavior: 'default_incomplete',
+        collection_method: 'charge_automatically',
+        payment_settings: {
+          payment_method_types: ['card'],
+          save_default_payment_method: 'on_subscription',
+        },
+        expand: ['latest_invoice.payment_intent'],
+        metadata: {
+          regularPriceId: regularPrice.id // Store for later use
+        }
+      });
+
+      // Schedule the price update after 3 days
+      await stripe.subscriptionSchedules.create({
+        from_subscription: subscription.id,
+        phases: [
+          {
+            start_date: 'now',
+            items: [{ price: trialPrice.id }],
+            iterations: 1
+          },
+          {
+            items: [{ price: regularPrice.id }],
+            iterations: null // Continue indefinitely
+          }
+        ]
+      });
+
+      const invoice = subscription.latest_invoice as any;
+      if (!invoice?.payment_intent?.client_secret) {
+        throw new Error('No client secret found in subscription');
+      }
+
+      return res.status(200).json({
+        subscriptionId: subscription.id,
+        clientSecret: invoice.payment_intent.client_secret,
+      });
+    }
+
+    // Regular subscription without trial
+    const price = await stripe.prices.create({
+      product: product.id,
+      unit_amount: amount,
+      currency: 'usd',
       recurring: {
-        interval: 'month', // Always monthly for trials
+        interval: interval as 'month' | 'year',
       },
-    };
+    });
 
-    // Create the price
-    const price = await stripe.prices.create(priceData);
-    console.log('Created price:', price.id);
-
-    // Create the subscription
-    const subscriptionData: Stripe.SubscriptionCreateParams = {
+    const subscription = await stripe.subscriptions.create({
       customer: customer.id,
       items: [{ price: price.id }],
       payment_behavior: 'default_incomplete',
+      collection_method: 'charge_automatically',
       payment_settings: {
         payment_method_types: ['card'],
         save_default_payment_method: 'on_subscription',
       },
-      trial_period_days: trialPeriodDays,
       expand: ['latest_invoice.payment_intent'],
-      // Add trial end behavior
-      trial_settings: trialPeriodDays ? {
-        end_behavior: {
-          missing_payment_method: 'cancel',
-        },
-      } : undefined,
-      // Collect payment method even during trial
-      collection_method: 'charge_automatically',
-    };
-
-    console.log('Creating subscription with data:', {
-      priceId: price.id,
-      customerId: customer.id,
-      trialPeriodDays,
     });
 
-    const subscription = await stripe.subscriptions.create(subscriptionData);
-    console.log('Created subscription:', subscription.id);
-
-    // Get the client secret
-    const invoice = subscription.latest_invoice as Stripe.Invoice;
-    const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
-
-    if (!paymentIntent?.client_secret) {
-      console.error('Missing client secret in subscription:', {
-        subscriptionId: subscription.id,
-        invoiceId: invoice.id,
-        paymentIntentId: paymentIntent?.id,
-      });
-      throw new Error('No client secret found in payment intent');
+    const invoice = subscription.latest_invoice as any;
+    if (!invoice?.payment_intent?.client_secret) {
+      throw new Error('No client secret found in subscription');
     }
 
-    // Return the subscription ID and client secret
     return res.status(200).json({
       subscriptionId: subscription.id,
-      clientSecret: paymentIntent.client_secret,
+      clientSecret: invoice.payment_intent.client_secret,
     });
 
   } catch (error) {
-    console.error('❌ Error creating subscription:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
-    return res.status(500).json({ message: errorMessage });
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    if (error instanceof stripe.errors.StripeError) {
+      console.error('Stripe error:', {
+        type: error.type,
+        code: error.code,
+        param: error.param,
+      });
+    }
+
+    return res.status(500).json({
+      message: error instanceof Error ? error.message : 'Internal server error',
+      type: error instanceof stripe.errors.StripeError ? error.type : undefined,
+    });
   }
 }
