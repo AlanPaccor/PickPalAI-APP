@@ -34,6 +34,12 @@ interface UserSubscription {
   startDate: Date;
   trialEndDate: Date;
   status: 'trial' | 'active' | 'cancelled' | 'expired';
+  stripeSubscriptionId?: string;
+}
+
+interface StripeSubscriptionResponse {
+  subscriptionId: string;
+  clientSecret: string;
 }
 
 export default function SubscriptionScreen() {
@@ -97,70 +103,162 @@ export default function SubscriptionScreen() {
         throw new Error('No user found');
       }
 
-      // Handle both trial and paid subscriptions through Stripe
-      const amount = plan.name === 'Free Trial' ? 1500 : (plan.name === 'Monthly' ? 1500 : 15300);
-      
-      // Get payment intent from your backend
-      const clientSecret = await createPaymentIntent(amount);
-      
-      // Initialize payment sheet
-      const { error: initError } = await stripe.initPaymentSheet({
-        paymentIntentClientSecret: clientSecret,
-        merchantDisplayName: 'Oddsly',
-        defaultBillingDetails: {
-          email: user.email || undefined,
+      // For free trial, we'll create a subscription with a trial period
+      if (plan.name === 'Free Trial') {
+        try {
+          const amount = 1500; // $15.00 in cents
+          
+          console.log('Creating free trial subscription:', {
+            interval: 'month',
+            amount,
+            trialPeriodDays: 2
+          });
+          
+          const response = await createPaymentIntent('month', amount, {
+            trialPeriodDays: 2
+          });
+          
+          if (!response?.clientSecret || !response?.subscriptionId) {
+            throw new Error('Invalid response: Missing required fields');
+          }
+
+          const { clientSecret, subscriptionId } = response;
+
+          // Initialize payment sheet
+          const { error: initError } = await stripe.initPaymentSheet({
+            paymentIntentClientSecret: clientSecret,
+            merchantDisplayName: 'Oddsly',
+            defaultBillingDetails: {
+              email: user.email || undefined,
+            },
+            style: 'automatic'
+          });
+
+          if (initError) {
+            console.error('Payment sheet init error:', initError);
+            throw new Error(initError.message);
+          }
+
+          // Present payment sheet
+          const { error: presentError } = await stripe.presentPaymentSheet();
+          
+          if (presentError) {
+            if (presentError.code === 'Canceled') {
+              throw new Error('Payment cancelled');
+            }
+            throw new Error(presentError.message);
+          }
+
+          // Payment successful, update subscription
+          const subscription: UserSubscription = {
+            plan: 'Monthly',
+            startDate: new Date(),
+            trialEndDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+            status: 'trial',
+            stripeSubscriptionId: subscriptionId,
+          };
+
+          // Only proceed with Firestore update if we have a valid subscriptionId
+          if (subscriptionId) {
+            await setDoc(doc(db, 'users', user.uid), {
+              email: user.email,
+              subscription,
+            }, { merge: true });
+          } else {
+            throw new Error('No subscription ID received');
+          }
+
+          // Show success message
+          Alert.alert(
+            'Thank You!',
+            'Welcome to Oddsly! Your free trial has been activated. Enjoy unlimited access to all our premium features for the next 2 days.',
+            [{ text: 'Start Using Oddsly', onPress: () => router.replace('/(tabs)') }]
+          );
+        } catch (error) {
+          console.error('Payment intent creation error:', error);
+          throw error;
         }
-      });
-
-      if (initError) {
-        throw new Error(initError.message);
-      }
-
-      // Present payment sheet
-      const { error: presentError } = await stripe.presentPaymentSheet();
-      
-      if (presentError) {
-        if (presentError.code === 'Canceled') {
-          throw new Error('Payment cancelled');
+      } else {
+        // Regular paid plans without trial
+        const amount = plan.name === 'Monthly' ? 1500 : 15300;
+        const interval = plan.name === 'Annual' ? 'year' : 'month';
+        
+        console.log('Creating paid subscription:', {
+          interval,
+          amount
+        });
+        
+        const response = await createPaymentIntent(interval, amount);
+        
+        if (!response?.clientSecret || !response?.subscriptionId) {
+          throw new Error('Failed to create subscription');
         }
-        throw new Error(presentError.message);
+
+        const { clientSecret, subscriptionId } = response;
+
+        // Initialize payment sheet
+        const { error: initError } = await stripe.initPaymentSheet({
+          paymentIntentClientSecret: clientSecret,
+          merchantDisplayName: 'Oddsly',
+          defaultBillingDetails: {
+            email: user.email || undefined,
+          },
+          style: 'automatic'
+        });
+
+        if (initError) {
+          console.error('Payment sheet init error:', initError);
+          throw new Error(initError.message);
+        }
+
+        // Present payment sheet
+        const { error: presentError } = await stripe.presentPaymentSheet();
+        
+        if (presentError) {
+          if (presentError.code === 'Canceled') {
+            throw new Error('Payment cancelled');
+          }
+          throw new Error(presentError.message);
+        }
+
+        // Payment successful, update subscription
+        const subscription: UserSubscription = {
+          plan: plan.name === 'Monthly' ? 'Monthly' : 'Annual',
+          startDate: new Date(),
+          trialEndDate: new Date(), // No trial for direct paid plans
+          status: 'active',
+          stripeSubscriptionId: subscriptionId,
+        };
+
+        await setDoc(doc(db, 'users', user.uid), {
+          email: user.email,
+          subscription,
+        }, { merge: true });
+
+        // Show success message
+        Alert.alert(
+          'Thank You!',
+          `Welcome to Oddsly ${plan.name} Plan! Thank you for your subscription. You now have full access to all our premium features.`,
+          [{ text: 'Start Using Oddsly', onPress: () => router.replace('/(tabs)') }]
+        );
       }
-
-      // Payment successful, update subscription
-      const subscription: UserSubscription = {
-        plan: plan.name === 'Free Trial' ? 'Monthly' : (plan.name as 'Monthly' | 'Annual'),
-        startDate: new Date(),
-        trialEndDate: plan.name === 'Free Trial' 
-          ? new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) // 2 days from now
-          : new Date(), // No trial for direct paid plans
-        status: plan.name === 'Free Trial' ? 'trial' : 'active',
-      };
-
-      await setDoc(doc(db, 'users', user.uid), {
-        email: user.email,
-        subscription,
-      }, { merge: true });
-
-      Alert.alert(
-        plan.name === 'Free Trial' ? 'Trial Activated' : 'Payment Successful',
-        plan.name === 'Free Trial' 
-          ? 'Your free trial has been activated. Your card will be charged $15/month after the trial period.'
-          : 'Your subscription has been activated.',
-        [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
-      );
 
     } catch (error) {
       let message = 'Failed to process payment';
       if (error instanceof Error) {
         message = error.message;
         if (message.includes('Canceled')) {
-          // Don't show alert for user cancellation
           setLoading(false);
           return;
         }
       }
-      Alert.alert('Error', message, [{ text: 'OK' }]);
-      console.error('Payment error:', error);
+      
+      console.error('Subscription error:', error);
+      Alert.alert(
+        'Subscription Error', 
+        `${message}\n\nPlease try again or contact support if the problem persists.`, 
+        [{ text: 'OK' }]
+      );
     } finally {
       setLoading(false);
     }
@@ -292,7 +390,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     marginBottom: 16,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
   },
   popularCard: {
     borderColor: '#0A84FF',

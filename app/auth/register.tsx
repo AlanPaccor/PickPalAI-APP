@@ -230,10 +230,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FFFFFF20',
+    borderColor: '#FFFFFF30',
     borderRadius: 12,
     marginBottom: 16,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
   },
   input: {
     flex: 1,

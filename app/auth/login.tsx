@@ -1,6 +1,6 @@
 import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useState, useCallback, useEffect } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [stuckTimeout, setStuckTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const checkRememberMe = async () => {
@@ -30,6 +31,14 @@ export default function Login() {
     };
     checkRememberMe();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (stuckTimeout) {
+        clearTimeout(stuckTimeout);
+      }
+    };
+  }, [stuckTimeout]);
 
   const handleLogin = async () => {
     if (loading) return;
@@ -52,8 +61,17 @@ export default function Login() {
       
       console.log('User logged in:', userCredential.user.uid);
       
-      // The AuthContext will handle the routing based on subscription status
-      // No need to manually route here
+      const timeout = setTimeout(() => {
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            console.log('User still on login page, forcing navigation...');
+            router.replace('/(tabs)');
+          }
+        });
+      }, 2000);
+
+      setStuckTimeout(timeout);
+      
     } catch (err: any) {
       console.error('Login error:', err);
       let message = 'Failed to login. Please check your credentials.';
@@ -175,10 +193,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FFFFFF20',
+    borderColor: '#FFFFFF30',
     borderRadius: 12,
     marginBottom: 16,
-    backgroundColor: '#00000010',
+    backgroundColor: '#000010',
   },
   input: {
     flex: 1,

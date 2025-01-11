@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet, Platform, ScrollView, Switch, Modal } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Platform, ScrollView, Switch, Modal, Alert } from 'react-native';
 import { auth } from '../config/firebase';
 import { signOut } from 'firebase/auth';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -38,11 +38,43 @@ export default function AccountScreen() {
   const { betCount } = useBetCount();
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out of your account?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          isPreferred: true  // iOS will make this the bold option
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut(auth);
+              // Optional: Show a brief success message
+              Alert.alert(
+                'Signed Out',
+                'You have been successfully signed out.',
+                [{ text: 'OK' }]
+              );
+            } catch (error) {
+              console.error('Error signing out:', error);
+              Alert.alert(
+                'Sign Out Failed',
+                'There was a problem signing out. Please try again.',
+                [{ text: 'OK' }]
+              );
+            }
+          }
+        }
+      ],
+      {
+        cancelable: true,
+        userInterfaceStyle: colorScheme === 'dark' ? 'dark' : 'light'
+      }
+    );
   };
 
   const showModal = (title: string, content: string) => {

@@ -4,6 +4,8 @@ import Colors from '@/constants/Colors';
 import Providers from './providers';
 import { useAuth } from './context/AuthContext';
 import AuthProvider from './context/AuthContext';
+import { StripeProvider } from '@stripe/stripe-react-native';
+import { STRIPE_PUBLISHABLE_KEY } from './config/env';
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -74,10 +76,12 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <Providers>
-      <AuthProvider>
-        <RootLayoutNav />
-      </AuthProvider>
-    </Providers>
+    <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
+      <Providers>
+        <AuthProvider>
+          <RootLayoutNav />
+        </AuthProvider>
+      </Providers>
+    </StripeProvider>
   );
 }

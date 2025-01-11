@@ -17,10 +17,8 @@ export const FIREBASE_CONFIG = {
 };
 
 // Stripe
-export const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || 
-  extra.STRIPE_PUBLISHABLE_KEY || 
-  'pk_test_51...'; // Your actual test publishable key here
-export const STRIPE_SECRET_KEY = extra.STRIPE_SECRET_KEY as string;
+export const STRIPE_PUBLISHABLE_KEY = 'pk_test_51QfVCFAYEunyQBWeY8QhYyyrynJt4bsCQ3abUD4OigwVcLmgf4gkWwFDpQeLwoaAQGK8PXy3vdvA2kWHWuARmgd800O6fdJvkp';
+export const STRIPE_SECRET_KEY = 'sk_test_51QfVCFAYEunyQBWeaybAlqQZD5irnAXYvXeRnyN5jA62BZGnHcy5cBj6qzrebi16tvbckbcpF2awTL4Fj0lOKvYI002x7DwUO3';
 
 // Google Cloud Vision
 export const GOOGLE_CLOUD_VISION_API_KEY = extra.GOOGLE_CLOUD_VISION_API_KEY as string;

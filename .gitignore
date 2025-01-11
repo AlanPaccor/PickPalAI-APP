@@ -168,4 +168,9 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
 >>>>>>> 564cccadc38133732cf1a2e77aea2adf0ea35f82
