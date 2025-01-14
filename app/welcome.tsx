@@ -1,16 +1,21 @@
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from './components/ThemedText';
+import { ThemedView } from './components/ThemedView';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { MaterialCommunityIcons as IconType } from '@expo/vector-icons';
 import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { OnboardingSlideshow } from './components/OnboardingSlideshow';
 
 export default function WelcomeScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+
+  const handleGetStarted = () => {
+    router.push('/(slideshow)');
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -43,19 +48,10 @@ export default function WelcomeScreen() {
       <Animated.View style={[styles.buttonSection, { marginBottom: insets.bottom }]}>
         <TouchableOpacity 
           style={styles.registerButton}
-          onPress={() => router.push('/auth/register')}
+          onPress={handleGetStarted}
         >
           <ThemedText style={styles.buttonText}>
             {t('Get Started Free')}
-          </ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.loginButton}
-          onPress={() => router.push('/auth/login')}
-        >
-          <ThemedText style={styles.loginText}>
-            {t('Sign In to Your Account')}
           </ThemedText>
         </TouchableOpacity>
       </Animated.View>

@@ -16,8 +16,8 @@ import Animated, {
   Easing,
   runOnJS,
 } from 'react-native-reanimated';
-import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { doc, getDoc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../config/firebase';
 import { useBetCount } from '../hooks/useBetCount';
 import { useTranslation } from 'react-i18next';
 
@@ -341,6 +341,7 @@ export default function IndexScreen() {
   const { t } = useTranslation();
   const [showNotifications, setShowNotifications] = useState(false);
   const { notifications, loading: notificationsLoading, markAsRead } = useNotifications(user?.uid);
+  const [checkingSubscription, setCheckingSubscription] = useState(false);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -354,17 +355,29 @@ export default function IndexScreen() {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         const userData = userDoc.data();
         
-        if (!userData?.plan || userData.plan.status !== 'active') {
+        // If no plan exists at all, redirect to subscription
+        if (!userData?.plan) {
           router.replace('/auth/subscription');
           return;
         }
 
         // Check if plan has expired
         const endDate = new Date(userData.plan.endDate);
-        if (new Date() > endDate) {
-          router.replace('/auth/subscription');
+        const now = new Date();
+
+        // Allow access if:
+        // 1. Plan is active OR
+        // 2. Plan is cancelled but hasn't expired yet
+        if (
+          userData.plan.status === 'active' || 
+          (userData.plan.status === 'cancelled' && now <= endDate)
+        ) {
+          // User can access the app
           return;
         }
+
+        // If we get here, the plan is either expired or cancelled and expired
+        router.replace('/auth/subscription');
 
       } catch (error) {
         console.error('Error checking user data:', error);
@@ -377,6 +390,88 @@ export default function IndexScreen() {
     checkAccess();
   }, [user]);
 
+  useEffect(() => {
+    checkSubscriptionStatus();
+  }, []);
+
+  const checkSubscriptionStatus = async () => {
+    setCheckingSubscription(true);
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.data();
+      
+      if (!userData?.subscription?.current) return;
+
+      const { current } = userData.subscription;
+      const endDate = new Date(current.endDate);
+      const now = new Date();
+
+      // Check if subscription is active but past end date
+      if (current.status === 'active' && endDate < now) {
+        console.log('Subscription needs renewal update');
+
+        // Calculate new end date based on plan type
+        const newEndDate = new Date();
+        if (current.type === 'monthly') {
+          newEndDate.setMonth(newEndDate.getMonth() + 1);
+        } else if (current.type === 'annual') {
+          newEndDate.setFullYear(newEndDate.getFullYear() + 1);
+        } else {
+          // Trial plans should not auto-renew
+          return;
+        }
+
+        const timestamp = now.toISOString();
+
+        // Create history entry for the previous period
+        const historyEntry = {
+          ...current,
+          endDate: endDate.toISOString(),
+        };
+
+        // Update subscription with new period
+        const updatedSubscription = {
+          ...current,
+          startDate: timestamp,
+          endDate: newEndDate.toISOString(),
+        };
+
+        await updateDoc(doc(db, 'users', user.uid), {
+          'subscription.history': [
+            ...(userData.subscription.history || []),
+            historyEntry
+          ],
+          'subscription.current': updatedSubscription,
+          'plan.startDate': timestamp,
+          'plan.endDate': newEndDate.toISOString(),
+          payments: [
+            ...(userData.payments || []),
+            {
+              id: `renewal_${timestamp}`,
+              amount: current.amount,
+              date: timestamp,
+              type: current.type,
+              status: 'succeeded'
+            }
+          ],
+          updatedAt: timestamp
+        });
+
+        console.log('Subscription renewed:', {
+          type: current.type,
+          newEndDate: newEndDate.toISOString()
+        });
+      }
+    } catch (error) {
+      console.error('Error checking subscription status:', error);
+    } finally {
+      setCheckingSubscription(false);
+    }
+  };
+
   const handleNotificationPress = async (notificationId: string) => {
     const notification = notifications.find(n => n.id === notificationId);
     if (!notification) return;
@@ -388,6 +483,14 @@ export default function IndexScreen() {
     }
     setShowNotifications(false);
   };
+
+  if (checkingSubscription) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.tint} />
+      </View>
+    );
+  }
 
   if (isLoading) {
     return (
