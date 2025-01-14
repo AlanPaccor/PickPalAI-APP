@@ -22,6 +22,7 @@ interface PaymentResponse {
   paymentIntentId?: string;
   subscriptionId?: string;
   paymentId?: string;
+  customerId: string;
 }
 
 export const createPaymentIntent = async (params: PaymentIntentParams): Promise<PaymentResponse> => {
@@ -61,7 +62,8 @@ export const createPaymentIntent = async (params: PaymentIntentParams): Promise<
       clientSecret: data.clientSecret,
       paymentIntentId: data.paymentIntentId,
       subscriptionId: data.subscriptionId,
-      paymentId: data.paymentId
+      paymentId: data.paymentId,
+      customerId: data.customerId
     };
   } catch (error) {
     console.error('Error creating payment intent:', error);

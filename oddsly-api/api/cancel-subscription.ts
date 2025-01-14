@@ -35,16 +35,39 @@ export default async function handler(req: Request, res: Response) {
     const userData = userDoc.data();
     console.log('User data:', userData);
 
-    if (!userData?.subscription?.current?.subscriptionId) {
-      return res.status(400).json({ error: 'No active subscription found' });
+    // Check for subscription or payment ID
+    const subscriptionId = userData?.subscription?.current?.subscriptionId;
+    const paymentId = userData?.subscription?.current?.paymentId;
+    const customerId = userData?.subscription?.current?.customerId;
+
+    console.log('IDs found:', { subscriptionId, paymentId, customerId });
+
+    if (!subscriptionId && !paymentId && !customerId) {
+      return res.status(400).json({ error: 'No active subscription or payment found' });
     }
 
-    const stripeSubId = userData.subscription.current.subscriptionId;
-
     try {
-      await stripe.subscriptions.update(stripeSubId, {
-        cancel_at_period_end: true,
-      });
+      if (subscriptionId) {
+        // Cancel subscription
+        await stripe.subscriptions.update(subscriptionId, {
+          cancel_at_period_end: true,
+        });
+      } else if (customerId) {
+        // Find and cancel subscription through customer
+        const subscriptions = await stripe.subscriptions.list({
+          customer: customerId,
+          limit: 1,
+          status: 'active'
+        });
+
+        if (subscriptions.data.length > 0) {
+          await stripe.subscriptions.update(subscriptions.data[0].id, {
+            cancel_at_period_end: true,
+          });
+        }
+      }
+      // If only paymentId exists, it's likely a one-time payment (trial)
+      // which doesn't need cancellation in Stripe
     } catch (stripeError) {
       console.error('Stripe error:', stripeError);
       return res.status(500).json({ 
@@ -61,6 +84,7 @@ export default async function handler(req: Request, res: Response) {
         'plan.autoRenew': false,
         updatedAt: new Date().toISOString()
       });
+      console.log('Updated Firestore document');
     } catch (firestoreError) {
       console.error('Firestore error:', firestoreError);
       return res.status(500).json({ 

@@ -66,7 +66,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       return res.status(200).json({
         clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id
+        paymentIntentId: paymentIntent.id,
+        customerId: customer.id
       });
 
     } else {
@@ -109,7 +110,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({
         subscriptionId: subscription.id,
         clientSecret: invoice.payment_intent.client_secret,
-        paymentId: invoice.payment_intent.id
+        paymentId: invoice.payment_intent.id,
+        customerId: customer.id
       });
     }
 

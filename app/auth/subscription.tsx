@@ -157,6 +157,18 @@ export default function SubscriptionScreen() {
             const now = new Date();
             const timestamp = now.toISOString();
 
+            console.log('Payment intent response:', response);
+
+            console.log('Writing to Firestore:', {
+              type: plan.name === 'Trial Plan' ? 'trial' : plan.name.toLowerCase(),
+              status: 'active',
+              startDate: timestamp,
+              endDate: endDate.toISOString(),
+              paymentId: response.paymentId || response.paymentIntentId,
+              customerId: response.customerId || null,
+              amount: 150
+            });
+
             await setDoc(doc(db, 'users', user.uid), {
               email: user.email,
               plan: {
@@ -165,6 +177,7 @@ export default function SubscriptionScreen() {
                 startDate: timestamp,
                 endDate: endDate.toISOString(),
                 paymentId: response.paymentIntentId,
+                customerId: response.customerId || null,
                 amount: 150
               },
               payments: [{
@@ -181,6 +194,7 @@ export default function SubscriptionScreen() {
                   endDate: endDate.toISOString(),
                   status: 'active',
                   paymentId: response.paymentIntentId,
+                  customerId: response.customerId || null,
                   amount: 150
                 }],
                 current: {
@@ -189,6 +203,7 @@ export default function SubscriptionScreen() {
                   endDate: endDate.toISOString(),
                   status: 'active',
                   paymentId: response.paymentIntentId,
+                  customerId: response.customerId || null,
                   amount: 150
                 }
               },
@@ -275,6 +290,18 @@ export default function SubscriptionScreen() {
             const now = new Date();
             const timestamp = now.toISOString();
 
+            console.log('Payment intent response:', response);
+
+            console.log('Writing to Firestore:', {
+              type: plan.name === 'Trial Plan' ? 'trial' : plan.name.toLowerCase(),
+              status: 'active',
+              startDate: timestamp,
+              endDate: endDate.toISOString(),
+              paymentId: response.paymentId || response.paymentIntentId,
+              customerId: response.customerId || null,
+              amount: amount
+            });
+
             await setDoc(doc(db, 'users', user.uid), {
               email: user.email,
               plan: {
@@ -283,6 +310,7 @@ export default function SubscriptionScreen() {
                 startDate: timestamp,
                 endDate: endDate.toISOString(),
                 paymentId: response.paymentId || response.paymentIntentId,
+                customerId: response.customerId || null,
                 amount: amount
               },
               payments: [{
@@ -299,6 +327,7 @@ export default function SubscriptionScreen() {
                   endDate: endDate.toISOString(),
                   status: 'active',
                   paymentId: response.paymentId || response.paymentIntentId,
+                  customerId: response.customerId || null,
                   amount: amount
                 }],
                 current: {
@@ -307,6 +336,7 @@ export default function SubscriptionScreen() {
                   endDate: endDate.toISOString(),
                   status: 'active',
                   paymentId: response.paymentId || response.paymentIntentId,
+                  customerId: response.customerId || null,
                   amount: amount
                 }
               },
