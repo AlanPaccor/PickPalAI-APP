@@ -6,7 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db, auth } from '../config/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useState } from 'react';
 import { useStripe } from '@stripe/stripe-react-native';
 import { createPaymentIntent } from '../config/api';
@@ -51,7 +51,7 @@ export default function SubscriptionScreen() {
     {
       name: 'Trial Plan',
       price: '$1.50',
-      interval: 'first 3 days',
+      interval: '2 days',
       popular: true,
       features: [
         { icon: 'percent', text: 'Special trial offer - 90% off!' },
@@ -61,7 +61,6 @@ export default function SubscriptionScreen() {
         { icon: 'bell-outline', text: 'Priority notifications' },
         { icon: 'star', text: 'Expert picks' },
         { icon: 'chart-bell-curve', text: 'Trend analysis' },
-        { icon: 'information', text: 'Then $15/month after trial' },
       ],
     },
     {
@@ -105,25 +104,18 @@ export default function SubscriptionScreen() {
         throw new Error('No user found');
       }
 
-      // For free trial, we'll create a subscription with a trial period
       if (plan.name === 'Trial Plan') {
         try {
-          const amount = 1500; // Regular price: $15.00 in cents
-          
-          console.log('Creating trial subscription:', {
-            interval: 'month',
-            amount,
+          console.log('Creating trial payment...');
+          const response = await createPaymentIntent({
+            amount: 150, // $1.50 in cents
             isTrialPeriod: true,
+            userId: user.uid,
             email: user.email
           });
           
-          const response = await createPaymentIntent('month', amount, {
-            isTrialPeriod: true,
-            email: user.email
-          });
-          
-          if (!response?.clientSecret || !response?.subscriptionId) {
-            throw new Error('Failed to create subscription');
+          if (!response?.clientSecret) {
+            throw new Error('Failed to create payment: Missing client secret');
           }
 
           // Initialize payment sheet
@@ -146,118 +138,211 @@ export default function SubscriptionScreen() {
           
           if (presentError) {
             if (presentError.code === 'Canceled') {
-              throw new Error('Payment cancelled');
+              return; // Just return if user cancelled
             }
             throw new Error(presentError.message);
           }
 
-          // Payment method setup successful, update subscription
-          const subscription: UserSubscription = {
-            plan: 'Monthly',
-            startDate: new Date(),
-            trialEndDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
-            status: 'trial',
-            stripeSubscriptionId: response.subscriptionId,
-          };
+          // Add the plan details directly after successful payment
+          try {
+            const endDate = new Date();
+            if (plan.name === 'Trial Plan') {
+              endDate.setDate(endDate.getDate() + 2);
+            } else if (plan.name === 'Monthly') {
+              endDate.setMonth(endDate.getMonth() + 1);
+            } else {
+              endDate.setFullYear(endDate.getFullYear() + 1);
+            }
 
-          await setDoc(doc(db, 'users', user.uid), {
-            email: user.email,
-            subscription,
-          }, { merge: true });
+            const now = new Date();
+            const timestamp = now.toISOString();
 
-          Alert.alert(
-            'Trial Started!',
-            'Your 3-day trial has started at 90% off! After 3 days, your subscription will automatically continue at $15/month.',
-            [{ text: 'Start Using Oddsly', onPress: () => router.replace('/(tabs)') }]
-          );
+            await setDoc(doc(db, 'users', user.uid), {
+              email: user.email,
+              plan: {
+                type: plan.name === 'Trial Plan' ? 'trial' : plan.name.toLowerCase(),
+                status: 'active',
+                startDate: timestamp,
+                endDate: endDate.toISOString(),
+                paymentId: response.paymentIntentId,
+                amount: 150
+              },
+              payments: [{
+                id: response.paymentIntentId,
+                amount: 150,
+                date: timestamp,
+                type: plan.name === 'Trial Plan' ? 'trial' : plan.name.toLowerCase(),
+                status: 'succeeded'
+              }],
+              subscription: {
+                history: [{
+                  type: plan.name === 'Trial Plan' ? 'trial' : plan.name.toLowerCase(),
+                  startDate: timestamp,
+                  endDate: endDate.toISOString(),
+                  status: 'active',
+                  paymentId: response.paymentIntentId,
+                  amount: 150
+                }],
+                current: {
+                  type: plan.name === 'Trial Plan' ? 'trial' : plan.name.toLowerCase(),
+                  startDate: timestamp,
+                  endDate: endDate.toISOString(),
+                  status: 'active',
+                  paymentId: response.paymentIntentId,
+                  amount: 150
+                }
+              },
+              updatedAt: timestamp
+            }, { merge: true });
+
+            Alert.alert(
+              plan.name === 'Trial Plan' ? 'Access Granted!' : 'Thank You!',
+              plan.name === 'Trial Plan' 
+                ? 'Your 2-day access has been activated. Enjoy using Oddsly!'
+                : `Welcome to Oddsly ${plan.name} Plan! Your payment was successful.`,
+              [{ text: 'Start Using Oddsly', onPress: () => router.replace('/(tabs)') }]
+            );
+
+          } catch (error) {
+            console.error('Error updating user data:', error);
+            Alert.alert(
+              'Error',
+              'Payment successful but failed to activate plan. Please contact support.'
+            );
+          }
 
         } catch (error) {
-          console.error('Subscription error:', error);
-          throw error;
+          console.error('Payment error:', error);
+          Alert.alert(
+            'Payment Failed',
+            error instanceof Error ? error.message : 'Failed to process payment'
+          );
         }
       } else {
-        // Regular paid plans without trial
+        // Regular paid plans
         const amount = plan.name === 'Monthly' ? 1500 : 15300;
         const interval = plan.name === 'Annual' ? 'year' : 'month';
         
-        console.log('Creating paid subscription:', {
-          interval,
-          amount,
-          email: user.email
-        });
-        
-        const response = await createPaymentIntent(interval, amount, {
-          email: user.email
-        });
-        
-        if (!response?.clientSecret || !response?.subscriptionId) {
-          throw new Error('Failed to create subscription');
-        }
-
-        const { clientSecret, subscriptionId } = response;
-
-        // Initialize payment sheet
-        const { error: initError } = await stripe.initPaymentSheet({
-          paymentIntentClientSecret: clientSecret,
-          merchantDisplayName: 'Oddsly',
-          defaultBillingDetails: {
-            email: user.email || undefined,
-          },
-          style: 'automatic'
-        });
-
-        if (initError) {
-          console.error('Payment sheet init error:', initError);
-          throw new Error(initError.message);
-        }
-
-        // Present payment sheet
-        const { error: presentError } = await stripe.presentPaymentSheet();
-        
-        if (presentError) {
-          if (presentError.code === 'Canceled') {
-            throw new Error('Payment cancelled');
+        try {
+          console.log('Creating regular payment...');
+          const response = await createPaymentIntent({
+            amount,
+            interval,
+            userId: user.uid,
+            email: user.email
+          });
+          
+          if (!response?.clientSecret) {
+            throw new Error('Failed to create payment: Missing client secret');
           }
-          throw new Error(presentError.message);
+
+          // Initialize payment sheet
+          const { error: initError } = await stripe.initPaymentSheet({
+            paymentIntentClientSecret: response.clientSecret,
+            merchantDisplayName: 'Oddsly',
+            defaultBillingDetails: {
+              email: user.email || undefined,
+            },
+            style: 'automatic'
+          });
+
+          if (initError) {
+            console.error('Payment sheet init error:', initError);
+            throw new Error(initError.message);
+          }
+
+          // Present payment sheet
+          const { error: presentError } = await stripe.presentPaymentSheet();
+          
+          if (presentError) {
+            if (presentError.code === 'Canceled') {
+              return; // Just return if user cancelled
+            }
+            throw new Error(presentError.message);
+          }
+
+          // Add the plan details directly after successful payment
+          try {
+            const endDate = new Date();
+            if (plan.name === 'Trial Plan') {
+              endDate.setDate(endDate.getDate() + 2);
+            } else if (plan.name === 'Monthly') {
+              endDate.setMonth(endDate.getMonth() + 1);
+            } else {
+              endDate.setFullYear(endDate.getFullYear() + 1);
+            }
+
+            const now = new Date();
+            const timestamp = now.toISOString();
+
+            await setDoc(doc(db, 'users', user.uid), {
+              email: user.email,
+              plan: {
+                type: plan.name === 'Trial Plan' ? 'trial' : plan.name.toLowerCase(),
+                status: 'active',
+                startDate: timestamp,
+                endDate: endDate.toISOString(),
+                paymentId: response.paymentIntentId,
+                amount: amount
+              },
+              payments: [{
+                id: response.paymentIntentId,
+                amount: amount,
+                date: timestamp,
+                type: plan.name === 'Trial Plan' ? 'trial' : plan.name.toLowerCase(),
+                status: 'succeeded'
+              }],
+              subscription: {
+                history: [{
+                  type: plan.name === 'Trial Plan' ? 'trial' : plan.name.toLowerCase(),
+                  startDate: timestamp,
+                  endDate: endDate.toISOString(),
+                  status: 'active',
+                  paymentId: response.paymentIntentId,
+                  amount: amount
+                }],
+                current: {
+                  type: plan.name === 'Trial Plan' ? 'trial' : plan.name.toLowerCase(),
+                  startDate: timestamp,
+                  endDate: endDate.toISOString(),
+                  status: 'active',
+                  paymentId: response.paymentIntentId,
+                  amount: amount
+                }
+              },
+              updatedAt: timestamp
+            }, { merge: true });
+
+            Alert.alert(
+              plan.name === 'Trial Plan' ? 'Access Granted!' : 'Thank You!',
+              plan.name === 'Trial Plan' 
+                ? 'Your 2-day access has been activated. Enjoy using Oddsly!'
+                : `Welcome to Oddsly ${plan.name} Plan! Your payment was successful.`,
+              [{ text: 'Start Using Oddsly', onPress: () => router.replace('/(tabs)') }]
+            );
+
+          } catch (error) {
+            console.error('Error updating user data:', error);
+            Alert.alert(
+              'Error',
+              'Payment successful but failed to activate plan. Please contact support.'
+            );
+          }
+
+        } catch (error) {
+          console.error('Payment error:', error);
+          Alert.alert(
+            'Payment Failed',
+            error instanceof Error ? error.message : 'Failed to process payment'
+          );
         }
-
-        // Payment successful, update subscription
-        const subscription: UserSubscription = {
-          plan: plan.name === 'Monthly' ? 'Monthly' : 'Annual',
-          startDate: new Date(),
-          trialEndDate: new Date(), // No trial for direct paid plans
-          status: 'active',
-          stripeSubscriptionId: subscriptionId,
-        };
-
-        await setDoc(doc(db, 'users', user.uid), {
-          email: user.email,
-          subscription,
-        }, { merge: true });
-
-        // Show success message
-        Alert.alert(
-          'Thank You!',
-          `Welcome to Oddsly ${plan.name} Plan! Thank you for your subscription. You now have full access to all our premium features.`,
-          [{ text: 'Start Using Oddsly', onPress: () => router.replace('/(tabs)') }]
-        );
       }
 
     } catch (error) {
-      let message = 'Failed to process payment';
-      if (error instanceof Error) {
-        message = error.message;
-        if (message.includes('Canceled')) {
-          setLoading(false);
-          return;
-        }
-      }
-      
       console.error('Subscription error:', error);
       Alert.alert(
-        'Subscription Error', 
-        `${message}\n\nPlease try again or contact support if the problem persists.`, 
-        [{ text: 'OK' }]
+        'Error',
+        error instanceof Error ? error.message : 'An error occurred'
       );
     } finally {
       setLoading(false);

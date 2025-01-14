@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function hasValidPlan() {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let plan = userData.plan;
+      return plan != null && 
+             plan.status == 'active' && 
+             plan.endDate > request.time;
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    match /{collection}/{document=**} {
+      allow read: if isAuthenticated() && hasValidPlan();
+    }
+  }
+} 

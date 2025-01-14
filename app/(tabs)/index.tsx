@@ -343,25 +343,38 @@ export default function IndexScreen() {
   const { notifications, loading: notificationsLoading, markAsRead } = useNotifications(user?.uid);
 
   useEffect(() => {
-    const checkSubscription = async () => {
-      if (!user) return;
+    const checkAccess = async () => {
+      if (!user) {
+        router.replace('/auth/subscription');
+        return;
+      }
       
       try {
+        setIsLoading(true);
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         const userData = userDoc.data();
         
-        if (!userData?.subscription?.plan) {
+        if (!userData?.plan || userData.plan.status !== 'active') {
           router.replace('/auth/subscription');
+          return;
         }
+
+        // Check if plan has expired
+        const endDate = new Date(userData.plan.endDate);
+        if (new Date() > endDate) {
+          router.replace('/auth/subscription');
+          return;
+        }
+
       } catch (error) {
-        console.error('Error checking subscription:', error);
+        console.error('Error checking user data:', error);
         router.replace('/auth/subscription');
       } finally {
         setIsLoading(false);
       }
     };
 
-    checkSubscription();
+    checkAccess();
   }, [user]);
 
   const handleNotificationPress = async (notificationId: string) => {
