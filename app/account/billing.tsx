@@ -16,18 +16,8 @@ export default function BillingScreen() {
     subscription, 
     billingHistory, 
     loading,
-    changePlan,
     cancelSubscription 
   } = useSubscription();
-
-  const handleChangePlan = async () => {
-    try {
-      // Navigate to plan selection screen
-      router.push('/auth/subscription');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to change plan. Please try again.');
-    }
-  };
 
   const handleCancelSubscription = async () => {
     Alert.alert(
@@ -40,10 +30,25 @@ export default function BillingScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              console.log('Starting subscription cancellation...');
+              console.log('Current subscription state:', subscription);
+              
               await cancelSubscription();
-              Alert.alert('Success', 'Your subscription has been cancelled.');
+              console.log('Subscription cancelled successfully');
+              
+              Alert.alert(
+                'Subscription Cancelled',
+                'Your subscription has been cancelled. You\'ll continue to have access until the end of your current billing period.',
+                [{ text: 'OK' }]
+              );
             } catch (error) {
-              Alert.alert('Error', 'Failed to cancel subscription. Please try again.');
+              console.error('Cancellation error:', error);
+              Alert.alert(
+                'Error',
+                error instanceof Error 
+                  ? error.message 
+                  : 'Failed to cancel subscription. Please try again.'
+              );
             }
           },
         },
@@ -51,10 +56,10 @@ export default function BillingScreen() {
     );
   };
 
-  const formatDate = (timestamp: number | undefined) => {
-    if (!timestamp) return 'N/A';
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
     try {
-      return format(timestamp * 1000, 'MMMM d, yyyy');
+      return format(new Date(dateString), 'MMMM d, yyyy');
     } catch (error) {
       console.error('Date formatting error:', error);
       return 'N/A';
@@ -69,7 +74,6 @@ export default function BillingScreen() {
     );
   }
 
-  // Update the return statement to use subscription data
   return (
     <ScrollView 
       style={styles.container}
@@ -95,25 +99,34 @@ export default function BillingScreen() {
         <ThemedView style={styles.planCard}>
           <ThemedView style={styles.planHeader}>
             <ThemedText type="defaultSemiBold">
-              {subscription?.planName || 'No active plan'}
+              {subscription?.type 
+                ? subscription.type.charAt(0).toUpperCase() + subscription.type.slice(1) 
+                : 'No active plan'}
             </ThemedText>
             <ThemedView style={[
               styles.statusBadge,
-              { backgroundColor: subscription?.status === 'active' ? '#4CAF50' : '#FF3B30' }
+              { 
+                backgroundColor: subscription?.status === 'active' 
+                  ? '#4CAF50' 
+                  : subscription?.status === 'cancelled' 
+                    ? '#FF9800'
+                    : '#FF3B30' 
+              }
             ]}>
               <ThemedText style={styles.statusText}>
-                {subscription?.status === 'active' ? 'Active' : 'Inactive'}
+                {subscription?.status === 'active' 
+                  ? 'Active' 
+                  : subscription?.status === 'cancelled'
+                    ? 'Cancelling'
+                    : 'Inactive'}
               </ThemedText>
             </ThemedView>
           </ThemedView>
           <ThemedText style={styles.price}>
-            ${subscription?.price || 0}/month
+            ${(subscription?.amount || 0) / 100}/month
           </ThemedText>
           <ThemedText style={styles.renewalInfo}>
-            {subscription?.cancelAtPeriodEnd 
-              ? `Access until ${formatDate(subscription.currentPeriodEnd)}`
-              : `Next billing date: ${formatDate(subscription?.currentPeriodEnd)}`
-            }
+            Access until {formatDate(subscription?.endDate)}
           </ThemedText>
         </ThemedView>
       </ThemedView>
@@ -123,14 +136,21 @@ export default function BillingScreen() {
         <ThemedText type="subtitle" style={styles.sectionTitle}>Billing History</ThemedText>
         <ThemedView style={styles.historyCard}>
           {billingHistory.map((item) => (
-            <ThemedView key={item.id} style={styles.historyItem}>
+            <ThemedView 
+              key={`${item.paymentId}-${item.date}`} 
+              style={styles.historyItem}
+            >
               <ThemedView>
-                <ThemedText type="defaultSemiBold">{item.description}</ThemedText>
+                <ThemedText type="defaultSemiBold">
+                  {item.type.charAt(0).toUpperCase() + item.type.slice(1)} Plan
+                </ThemedText>
                 <ThemedText style={styles.historyDate}>
-                  {formatDate(item.created)}
+                  {formatDate(item.startDate)}
                 </ThemedText>
               </ThemedView>
-              <ThemedText type="defaultSemiBold">${item.amount}</ThemedText>
+              <ThemedText type="defaultSemiBold">
+                ${(item.amount / 100).toFixed(2)}
+              </ThemedText>
             </ThemedView>
           ))}
           {billingHistory.length === 0 && (
@@ -143,20 +163,16 @@ export default function BillingScreen() {
 
       {/* Actions */}
       <ThemedView style={styles.section}>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={handleChangePlan}
-        >
-          <ThemedText style={styles.actionButtonText}>Change Plan</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.cancelButton]}
-          onPress={handleCancelSubscription}
-        >
-          <ThemedText style={styles.cancelButtonText}>
-            {subscription?.cancelAtPeriodEnd ? 'Subscription Cancelled' : 'Cancel Subscription'}
-          </ThemedText>
-        </TouchableOpacity>
+        {subscription?.status === 'active' && (
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.cancelButton]}
+            onPress={handleCancelSubscription}
+          >
+            <ThemedText style={styles.cancelButtonText}>
+              Cancel Subscription
+            </ThemedText>
+          </TouchableOpacity>
+        )}
       </ThemedView>
     </ScrollView>
   );

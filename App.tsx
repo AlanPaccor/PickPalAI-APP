@@ -1,0 +1,11 @@
+import React from 'react';
+import { AuthProvider } from '@/hooks/useAuth';
+import { Stack } from 'expo-router';
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Stack />
+    </AuthProvider>
+  );
+} 

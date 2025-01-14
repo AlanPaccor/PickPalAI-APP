@@ -282,11 +282,11 @@ export default function SubscriptionScreen() {
                 status: 'active',
                 startDate: timestamp,
                 endDate: endDate.toISOString(),
-                paymentId: response.paymentIntentId,
+                paymentId: response.paymentId || response.paymentIntentId,
                 amount: amount
               },
               payments: [{
-                id: response.paymentIntentId,
+                id: response.paymentId || response.paymentIntentId,
                 amount: amount,
                 date: timestamp,
                 type: plan.name === 'Trial Plan' ? 'trial' : plan.name.toLowerCase(),
@@ -298,7 +298,7 @@ export default function SubscriptionScreen() {
                   startDate: timestamp,
                   endDate: endDate.toISOString(),
                   status: 'active',
-                  paymentId: response.paymentIntentId,
+                  paymentId: response.paymentId || response.paymentIntentId,
                   amount: amount
                 }],
                 current: {
@@ -306,7 +306,7 @@ export default function SubscriptionScreen() {
                   startDate: timestamp,
                   endDate: endDate.toISOString(),
                   status: 'active',
-                  paymentId: response.paymentIntentId,
+                  paymentId: response.paymentId || response.paymentIntentId,
                   amount: amount
                 }
               },
@@ -314,10 +314,10 @@ export default function SubscriptionScreen() {
             }, { merge: true });
 
             Alert.alert(
-              plan.name === 'Trial Plan' ? 'Access Granted!' : 'Thank You!',
-              plan.name === 'Trial Plan' 
-                ? 'Your 2-day access has been activated. Enjoy using Oddsly!'
-                : `Welcome to Oddsly ${plan.name} Plan! Your payment was successful.`,
+              'Thank You!',
+              `Welcome to Oddsly ${plan.name} Plan! Your subscription will automatically renew ${
+                plan.name === 'Monthly' ? 'monthly' : 'yearly'
+              } until cancelled.`,
               [{ text: 'Start Using Oddsly', onPress: () => router.replace('/(tabs)') }]
             );
 

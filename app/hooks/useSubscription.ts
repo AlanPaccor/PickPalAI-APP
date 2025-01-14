@@ -1,97 +1,87 @@
-import React, { useEffect, useState } from 'react';
-import { auth } from '../config/firebase';
-import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { getStripe } from '../config/stripe';
+import { useState, useEffect } from 'react';
+import { db, auth } from '../config/firebase';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { cancelSubscriptionAPI } from '../config/api';
 
-export interface SubscriptionData {
-  status: 'active' | 'canceled' | 'past_due' | 'unpaid';
-  planId: string;
-  planName: string;
-  currentPeriodEnd: number;
-  cancelAtPeriodEnd: boolean;
-  priceId: string;
-  price: number;
-}
-
-export interface BillingHistory {
-  id: string;
-  amount: number;
-  created: number;
-  status: string;
-  description: string;
-}
-
-export function useSubscription() {
-  const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
-  const [billingHistory, setBillingHistory] = useState<BillingHistory[]>([]);
+export const useSubscription = () => {
+  const [subscription, setSubscription] = useState<any>(null);
+  const [billingHistory, setBillingHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const db = getFirestore();
-    const unsubscribe = onSnapshot(
-      doc(db, 'users', user.uid),
-      async (snapshot) => {
-        const userData = snapshot.data();
-        if (userData?.stripeSubscriptionId) {
-          // Get subscription details from Stripe
-          const stripe = await getStripe();
-          const { subscription, history } = await fetch('/api/subscription-details', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              subscriptionId: userData.stripeSubscriptionId 
-            }),
-          }).then(res => res.json());
-
-          setSubscription(subscription);
-          setBillingHistory(history);
-        }
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
+    fetchSubscriptionData();
   }, []);
 
-  const changePlan = async (newPriceId: string) => {
-    const user = auth.currentUser;
-    if (!user) throw new Error('Not authenticated');
+  const fetchSubscriptionData = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        console.log('No user found in fetchSubscriptionData');
+        return;
+      }
 
-    const response = await fetch('/api/change-subscription', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        priceId: newPriceId,
-      }),
-    });
+      console.log('Fetching subscription data for user:', user.uid);
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.data();
 
-    if (!response.ok) {
-      throw new Error('Failed to change plan');
+      console.log('Fetched user data:', userData);
+
+      if (userData) {
+        console.log('Setting subscription:', userData.subscription?.current);
+        setSubscription(userData.subscription?.current);
+        console.log('Setting billing history:', userData.payments);
+        setBillingHistory(userData.payments || []);
+      }
+    } catch (error) {
+      console.error('Error fetching subscription:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const cancelSubscription = async () => {
-    const user = auth.currentUser;
-    if (!user) throw new Error('Not authenticated');
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        console.log('No user found in cancelSubscription');
+        throw new Error('No user found');
+      }
 
-    const response = await fetch('/api/cancel-subscription', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
+      console.log('Calling cancelSubscriptionAPI for user:', user.uid);
+      const response = await cancelSubscriptionAPI(user.uid);
+      console.log('Cancel subscription API response:', response);
 
-    if (!response.ok) {
-      throw new Error('Failed to cancel subscription');
+      if (!response.message) {
+        throw new Error('Invalid response from server');
+      }
+
+      console.log('Updating Firestore subscription status');
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        'subscription.current.status': 'cancelled',
+        'subscription.current.autoRenew': false,
+        'plan.status': 'cancelled',
+        'plan.autoRenew': false,
+        updatedAt: new Date().toISOString()
+      });
+      console.log('Firestore update completed');
+
+      console.log('Refreshing subscription data');
+      await fetchSubscriptionData();
+      console.log('Subscription data refreshed');
+
+      return true;
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      throw error;
     }
   };
 
-  return { 
-    subscription, 
-    billingHistory, 
+  return {
+    subscription,
+    billingHistory,
     loading,
-    changePlan,
-    cancelSubscription
+    cancelSubscription,
+    refreshSubscription: fetchSubscriptionData
   };
-} 
+}; 

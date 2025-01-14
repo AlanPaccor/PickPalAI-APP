@@ -116,5 +116,93 @@ export default async function handler(req, res) {
     }
   }
 
+  if (event.type === 'customer.subscription.created' || 
+      event.type === 'customer.subscription.updated') {
+    const subscription = event.data.object;
+    const userId = subscription.metadata.userId;
+    const interval = subscription.metadata.interval;
+
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+      const userData = userDoc.data() || {};
+
+      // Calculate next billing date
+      const startDate = new Date();
+      const endDate = new Date();
+      if (interval === 'month') {
+        endDate.setMonth(endDate.getMonth() + 1);
+      } else if (interval === 'year') {
+        endDate.setFullYear(endDate.getFullYear() + 1);
+      }
+
+      const timestamp = new Date().toISOString();
+
+      await setDoc(userRef, {
+        ...userData,
+        plan: {
+          type: interval,
+          status: 'active',
+          startDate: timestamp,
+          endDate: endDate.toISOString(),
+          subscriptionId: subscription.id,
+          amount: subscription.items.data[0].price.unit_amount,
+          autoRenew: true
+        },
+        subscription: {
+          ...userData.subscription,
+          current: {
+            type: interval,
+            startDate: timestamp,
+            endDate: endDate.toISOString(),
+            status: 'active',
+            subscriptionId: subscription.id,
+            amount: subscription.items.data[0].price.unit_amount,
+            autoRenew: true
+          }
+        },
+        updatedAt: timestamp
+      }, { merge: true });
+
+    } catch (error) {
+      console.error('Error updating subscription data:', error);
+    }
+  }
+
+  // Handle failed payments
+  if (event.type === 'invoice.payment_failed') {
+    const invoice = event.data.object;
+    const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+    const userId = subscription.metadata.userId;
+
+    try {
+      const userRef = doc(db, 'users', userId);
+      await setDoc(userRef, {
+        'plan.status': 'payment_failed',
+        'subscription.current.status': 'payment_failed'
+      }, { merge: true });
+    } catch (error) {
+      console.error('Error updating failed payment status:', error);
+    }
+  }
+
+  // Handle subscription cancellations
+  if (event.type === 'customer.subscription.deleted') {
+    const subscription = event.data.object;
+    const userId = subscription.metadata.userId;
+
+    try {
+      const userRef = doc(db, 'users', userId);
+      await setDoc(userRef, {
+        'plan.status': 'cancelled',
+        'plan.autoRenew': false,
+        'subscription.current.status': 'cancelled',
+        'subscription.current.autoRenew': false
+      }, { merge: true });
+    } catch (error) {
+      console.error('Error updating cancelled subscription:', error);
+    }
+  }
+
   res.json({ received: true });
 } 

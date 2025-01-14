@@ -12,8 +12,17 @@
         "dest": "/api/create-payment-intent.ts"
       },
       {
+        "src": "/api/cancel-subscription",
+        "dest": "/api/cancel-subscription.ts"
+      },
+      {
         "src": "/api/(.*)",
         "dest": "/api/$1.ts"
       }
-    ]
+    ],
+    "env": {
+      "FIREBASE_PROJECT_ID": "oddsly-df955",
+      "FIREBASE_CLIENT_EMAIL": "firebase-adminsdk-7j51n@oddsly-df955.iam.gserviceaccount.com",
+      "FIREBASE_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCkQ3xogAjZ9MjA\nzbiAKEvzbmMjCvNkbiHI4Bm8IZUlM7D8cN6sBZLPh1WpDyiEShTxfxGyv+wuBSq7\n2YZK28dynX07fVH1GNZFa0d2h9uX7WGvj34/XAt4VWykr39mF5MEiusv7qZs1b1l\nSVdbcJ2gMPrnqJxwskIe9u7ynSA0fGBBYzjf/KVLssSqDo/KOl9kMqfDNZpuVgn9\n3e33NQz3csAktxXsLJHIb6SfCY15ZlvcDEbefjMXjYjfMm/zw/KRvgad6Z2tueSi\nqgM1zbNIyiH75xTpQ4BNGJ/KZ+cS2ESF2/OuG9oP3ATLb/XhgYWUaDhGd7p/WcMe\nISRsmKVfAgMBAAECggEAGRJEg04DdoIyP/Hw9qfv4RGt/PPCGXKRIoVIjZqR6+cw\nsh8SGtm7l4RK/UOXMLXT7iuHCoGDmAnphK7F8gK14EG3Ew+Pek7WVCsfHFwjwVPA\nhK4XRq69q29dETfIxKQq0tcsisOB+vuWmEaHmFPJzeDxSCQdQzrZ9RBF1pmdMuqy\n73uD2g7I8gRCKT9RaOYh9pjs2Gvc1sxZIbJFwEwd3uw+v9bQUerngfPNqMtVTYwk\nF6HZSvPIV3IOiKOx4xCftCD5A62gZ4PyMvV7dmPq1ch/kg5qe69AywXtU8Cl3gDp\noPJjUkFC2nZlZsQm5b49yVjdNc4pfxlXqjTp1SzwuQKBgQDTf/uysrAGZiKRmgR6\nCuX15kAW6A99amBzs9/+ge9Z1c/GIbkoWQzgPOKlkUS3NChGDJrpbnAeEnQW3iJs\npp/QxjMvEM4ZZujkjWZxsvmfNb6jzld7UJE4tk60sENCp8mJry2/YOvlYMPJWBAx\n2vjhQcdTk3YZBvNkFeGyEGQNFwKBgQDG0zbFGWBIzJ0ZEZ0nZ7QOQsAFiY3Km2Hv\nji6XwixfFFwL0VyXbp9v+L0QrjBOlt0OJH9hAjwOZOMamqoUoA+17ZA62OJOZ47A\nlNOL88BARa81jHJHOUAwD+0npmRcYi63ptE+ENVP4dwqTtOGrIH5ZjqKzxSjcEP4\n2hbdOG2m+QKBgH9FO6QL7Orc2R5+7QS3vCvd02E1YeTZd5MIgdj4PZz0keQrdO03\nsQza9pQlN5F7HGUSvsGLiIJAHoWIRHTXS8JpEnHXDf6xM6IdCLGQvq+0urR9vZzi\nHZFf+zq1+rOInjlxJflNDIbqVMa7bHtjxnJej+DWErH6wcnPdRIe1OYfAoGAMTYD\n/2LZhwtF8vd+G0u6sDDrUDOMqdItulpJw/wmeV4TrkUiksSpp9A8E43ZnQoQKrjz\n4jHoZXOpFmOjpzk6yj/DjB00Xk2ZcqcjeSdatU3KIQnjGyfbcEnw2/h+LLOMdp5O\nefs2oO/5S2t5RYMbJHyeDs9Uf2OBH23zbMvTsBkCgYByFNkacv3LXbUlbgWxiWrZ\nzdYPXICbuO0uOM7dQJ7MtVmR12TIJmNnaA0QsAmCwM91xQ141uEPhbopxnLTXVUR\nXAV28BjCo4/17w8gg8HHbBWv4ChwoRh2Hvm6Z/necS95gUAByUvIo1W7ZBxD2i+Y\n9VLFr6+t5Eii7Qt4hEQ4VA==\n-----END PRIVATE KEY-----\n"
+    }
 }
