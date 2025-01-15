@@ -72,6 +72,24 @@ Please provide:
     });
   };
 
+  const handleAnalyticsPress = () => {
+    // Navigate to analytics with all available game details
+    onClose();
+    router.push({
+      pathname: '/analytics',
+      params: {
+        player: game.player,
+        bet: `${game.prediction} ${game.stat}`,
+        team: game.team,
+        opponent: game.opponent,
+        sport: game.sport,
+        position: game.position,
+        time: game.time,
+        popularity: game.popularity?.toString()
+      }
+    });
+  };
+
   return (
     <Modal
       animationType="slide"
@@ -168,11 +186,19 @@ Please provide:
             {/* Action Buttons */}
             <ThemedView style={styles.actionButtons}>
               <TouchableOpacity 
-                style={styles.assistantButton}
+                style={[styles.actionButton, styles.assistantButton]}
                 onPress={handleAssistantPress}
               >
                 <MaterialCommunityIcons name="robot" size={24} color="#FFFFFF" />
                 <ThemedText style={styles.buttonText}>{t('Get AI Analysis')}</ThemedText>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.analyticsButton]}
+                onPress={handleAnalyticsPress}
+              >
+                <MaterialCommunityIcons name="chart-line" size={24} color="#FFFFFF" />
+                <ThemedText style={styles.buttonText}>{t('View Analytics')}</ThemedText>
               </TouchableOpacity>
             </ThemedView>
           </ScrollView>
@@ -343,15 +369,21 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingHorizontal: 32,
     marginTop: 8,
+    gap: 12,
   },
-  assistantButton: {
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#000040',
     padding: 16,
     borderRadius: 16,
     gap: 8,
+  },
+  assistantButton: {
+    backgroundColor: '#000040',
+  },
+  analyticsButton: {
+    backgroundColor: '#004000',
   },
   buttonText: {
     color: '#FFFFFF',

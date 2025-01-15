@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity, Platform, Image, Dimensions } from 'react-native';
+import { StyleSheet, TouchableOpacity, Platform, Image, Dimensions, ActionSheetIOS, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -13,6 +13,97 @@ import { ThemedView } from '@/components/ThemedView';
 const { width } = Dimensions.get('window');
 
 const GOOGLE_CLOUD_VISION_API_KEY = Constants.expoConfig?.extra?.GOOGLE_CLOUD_VISION_API_KEY;
+
+const extractBetInfo = (text: string): {
+  player: string;
+  bet: string;
+  team?: string;
+  opponent?: string;
+  sport?: string;
+  time?: string;
+} => {
+  try {
+    // Enhanced regex patterns to extract more information
+    const player = text.match(/Player:\s*([^\n]+)/i)?.[1]?.trim() || 
+                  text.match(/([A-Za-z\s]+)\s+vs/i)?.[1]?.trim() || 
+                  'Unknown Player';
+    
+    const bet = text.match(/Bet:\s*([^\n]+)/i)?.[1]?.trim() || 
+                text.match(/(Over|Under)\s+[\d.]+/i)?.[0]?.trim() ||
+                text.match(/([\d.]+)\s+(points|rebounds|assists)/i)?.[0]?.trim() ||
+                'Unknown Bet';
+    
+    const team = text.match(/Team:\s*([^\n]+)/i)?.[1]?.trim();
+    const opponent = text.match(/(?:vs|versus)\s+([^\n]+)/i)?.[1]?.trim();
+    const sport = text.match(/Sport:\s*([^\n]+)/i)?.[1]?.trim();
+    const time = text.match(/Time:\s*([^\n]+)/i)?.[1]?.trim() ||
+                text.match(/(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)/)?.[1]?.trim();
+
+    return { player, bet, team, opponent, sport, time };
+  } catch (error) {
+    console.error('Error extracting bet info:', error);
+    return { player: 'Unknown Player', bet: 'Unknown Bet' };
+  }
+};
+
+const showAnalysisOptions = (processedImage: ImageManipulator.ImageResult, extractedText: string) => {
+  if (Platform.OS === 'ios') {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: ['Cancel', 'AI Chat Analysis', 'Statistical Analytics'],
+        cancelButtonIndex: 0,
+        title: 'Choose Analysis Type',
+        message: 'How would you like to analyze this bet?',
+      },
+      (buttonIndex) => handleAnalysisChoice(buttonIndex, processedImage, extractedText)
+    );
+  } else {
+    // Use Alert for Android and other platforms
+    Alert.alert(
+      'Choose Analysis Type',
+      'How would you like to analyze this bet?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'AI Chat Analysis',
+          onPress: () => handleAnalysisChoice(1, processedImage, extractedText),
+        },
+        {
+          text: 'Statistical Analytics',
+          onPress: () => handleAnalysisChoice(2, processedImage, extractedText),
+        },
+      ],
+      { cancelable: true }
+    );
+  }
+};
+
+const handleAnalysisChoice = (
+  buttonIndex: number, 
+  processedImage: ImageManipulator.ImageResult, 
+  extractedText: string
+) => {
+  if (buttonIndex === 1) {
+    // Navigate to AI Chat
+    router.push({
+      pathname: "/assistant",
+      params: { 
+        imageUri: processedImage.uri,
+        type: 'ticket',
+        extractedText: encodeURIComponent(extractedText)
+      }
+    });
+  } else if (buttonIndex === 2) {
+    const betInfo = extractBetInfo(extractedText);
+    router.push({
+      pathname: "/analytics",
+      params: betInfo
+    });
+  }
+};
 
 export default function ScanScreen() {
   const { t } = useTranslation();
@@ -78,19 +169,16 @@ export default function ScanScreen() {
 
       console.log('Extracted text:', extractedText);
       
-      // Navigate to assistant with the processed image and extracted text
-      router.push({
-        pathname: "./assistant",
-        params: { 
-          imageUri: processedImage.uri,
-          type: 'ticket',
-          extractedText: encodeURIComponent(extractedText)
-        }
-      });
+      // Show options to user
+      showAnalysisOptions(processedImage, extractedText);
 
     } catch (error) {
       console.error('Image Processing Error:', error);
-      // You might want to show an error message to the user here
+      Alert.alert(
+        'Error',
+        'Failed to process the image. Please try again.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setIsProcessing(false);
     }
