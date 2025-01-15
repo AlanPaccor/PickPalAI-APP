@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, ScrollView, Dimensions, ActivityIndicator, Platform } from 'react-native';
+import { StyleSheet, View, ScrollView, Dimensions, ActivityIndicator, Platform, TouchableOpacity } from 'react-native';
 import { ThemedView } from './components/ThemedView';
 import { ThemedText } from './components/ThemedText';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useGlobalSearchParams } from 'expo-router';
 import { useColorScheme } from 'react-native';
 import Colors from '@/constants/Colors';
 import { LineChart, LineChartProvider } from 'react-native-wagmi-charts';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Constants from 'expo-constants';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 const OPENAI_API_KEY = Constants.expoConfig?.extra?.OPENAI_API_KEY;
 
@@ -18,13 +20,13 @@ if (!OPENAI_API_KEY) {
 interface InsightData {
   question: string;
   value: number;
-  explanation?: string;
+  explanation: string;
   timestamp: number;
 }
 
 async function callGPT(prompt: string): Promise<string> {
   try {
-    console.log('Calling GPT API...');
+    console.log('Calling GPT API with prompt:', prompt);
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -49,7 +51,8 @@ async function callGPT(prompt: string): Promise<string> {
     }
 
     const data = await response.json();
-    console.log('GPT API Response:', data);
+    console.log('GPT API Full Response:', data);
+    console.log('GPT Response Content:', data.choices[0].message.content);
     return data.choices[0].message.content;
   } catch (error) {
     console.error('GPT API Error:', error);
@@ -59,21 +62,25 @@ async function callGPT(prompt: string): Promise<string> {
 
 function parseGPTResponse(response: string): { value: number; explanation: string }[] {
   try {
-    // Split the response into lines
+    console.log('Parsing GPT response:', response);
     const lines = response.split('\n');
+    console.log('Split lines:', lines);
+    
     const results: { value: number; explanation: string }[] = [];
-
+    
     lines.forEach(line => {
-      // Look for patterns like "Question1{75}" or similar
-      const match = line.match(/Question\d+{(\d+)}/);
+      console.log('Processing line:', line);
+      // Look for patterns like "Question1{75}: Explanation" or "Question1{75} Explanation"
+      const match = line.match(/Question\d+{(\d+)}[:\s]*(.*)/);
       if (match) {
+        console.log('Found match:', match);
         const value = parseInt(match[1], 10);
-        // Extract any additional explanation text after the number
-        const explanation = line.split('}')[1]?.trim() || '';
+        const explanation = match[2]?.trim() || '';
         results.push({ value, explanation });
       }
     });
 
+    console.log('Parsed results:', results);
     return results;
   } catch (error) {
     console.error('Error parsing GPT response:', error);
@@ -108,7 +115,16 @@ interface AnalyticsParams {
 }
 
 const AnalyticsScreen: React.FC = () => {
-  const params = useLocalSearchParams<AnalyticsParams>();
+  const params = useLocalSearchParams<{
+    player: string;
+    bet: string;
+    team?: string;
+    opponent?: string;
+    sport?: string;
+    position?: string;
+    time?: string;
+    popularity?: string;
+  }>();
   const { player, bet } = params;
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState<InsightData[]>([]);
@@ -136,24 +152,26 @@ const AnalyticsScreen: React.FC = () => {
       borderBottomWidth: 1,
       borderBottomColor: '#FFFFFF20',
       backgroundColor: '#000010',
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     title: {
       fontSize: 28,
       fontWeight: 'bold',
       marginBottom: 8,
-      color: '#FFFFFF',
+      color: '#1E90FF',
     },
     subtitle: {
       fontSize: 16,
-      color: '#FFFFFF80',
+      color: '#1E90FF',
     },
     chartContainer: {
       padding: 16,
       marginTop: 20,
-      backgroundColor: '#000020',
+      backgroundColor: '#000010',
       borderRadius: 16,
       borderWidth: 1,
-      borderColor: '#FFFFFF20',
+      borderColor: '#000010',
     },
     chart: {
       borderRadius: 16,
@@ -161,36 +179,42 @@ const AnalyticsScreen: React.FC = () => {
     insightsContainer: {
       padding: 16,
       gap: 16,
+      backgroundColor: '#000010',
     },
     insightCard: {
       padding: 16,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: '#FFFFFF20',
-      backgroundColor: '#000020',
+      backgroundColor: '#000010',
     },
     insightQuestion: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: '800',
       marginBottom: 12,
-      color: '#FFFFFF',
+      color: '#1E90FF',
     },
     insightValueContainer: {
       marginBottom: 12,
+      backgroundColor: '#FFFFFF08',
+      padding: 8,
+      borderRadius: 8,
     },
     insightValue: {
       fontSize: 24,
       fontWeight: 'bold',
       marginBottom: 8,
-      color: '#FFFFFF',
+      color: '#1E90FF',
+      backgroundColor: '#000010',
     },
     confidenceBar: {
-      height: 4,
-      borderRadius: 2,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: '#FFFFFF15',
     },
     insightExplanation: {
       fontSize: 14,
-      color: '#FFFFFF80',
+      color: '#FFFFFF99',
       lineHeight: 20,
     },
     overallContainer: {
@@ -198,15 +222,16 @@ const AnalyticsScreen: React.FC = () => {
       alignItems: 'center',
       borderBottomWidth: 1,
       borderBottomColor: '#FFFFFF20',
-      backgroundColor: '#000020',
+      backgroundColor: '#000010',
       margin: 16,
       borderRadius: 16,
       borderWidth: 1,
     },
     overallLabel: {
       fontSize: 16,
-      color: '#FFFFFF80',
+      color: '#1E90FF',
       marginBottom: 8,
+      fontWeight: '800',
     },
     overallPercentage: {
       fontSize: 48,
@@ -214,60 +239,82 @@ const AnalyticsScreen: React.FC = () => {
     },
     winProbability: {
       fontSize: 14,
-      color: '#FFFFFF80',
+      color: '#1E90FF',
       marginTop: 4,
+    },
+    backButton: {
+      position: 'absolute',
+      top: 20,
+      left: 16,
+      padding: 8,
+      borderRadius: 8,
+      backgroundColor: '#000010',
+    },
+    headerTextContainer: {
+      flex: 1,
+      alignItems: 'center',
     },
   });
 
   const fetchAIInsights = async () => {
     try {
       setLoading(true);
+      console.log('Fetching insights with params:', params);
 
-      // Create a more detailed prompt using all available information
-      const prompt = `The player you're analyzing is ${player}. Here's all the available information about this bet:
+      // Update the prompt to be more explicit about the response format
+      const prompt = `Analyze this sports betting prediction with specific percentages and explanations:
 
-Player: ${player}
-Bet Details: ${bet}
-${params.team ? `Team: ${params.team}` : ''}
-${params.opponent ? `Opponent: ${params.opponent}` : ''}
-${params.sport ? `Sport: ${params.sport}` : ''}
-${params.position ? `Position: ${params.position}` : ''}
-${params.time ? `Game Time: ${params.time}` : ''}
-${params.popularity ? `Bet Popularity: ${params.popularity}` : ''}
+Game Details:
+- Player: ${player}
+- Bet Type: ${bet}
+- Team: ${params.team || 'N/A'}
+- Opponent: ${params.opponent || 'N/A'}
+- Sport: ${params.sport || 'N/A'}
+- Position: ${params.position || 'N/A'}
+- Game Time: ${params.time || 'N/A'}
+- Popularity: ${params.popularity || 'N/A'}
 
-I need you to analyze this bet and respond in "0-100%" format (where 0 is very unfavorable and 100 is highly favorable).
+Respond EXACTLY in this format for each question (including the "Question" prefix and curly braces):
+Question1{75}: Detailed explanation here
+Question2{80}: Another detailed explanation
+etc.
 
-1: How likely is the player to exceed their average performance in this ${bet}?
-2: What's the player's success rate in similar matchups?
-3: How does the player perform under current conditions?
-4: What's the historical accuracy for this type of bet?
-5: How does recent form impact this bet?
+Answer these questions:
+1. How likely is ${player} to exceed their average performance in ${bet}?
+2. What's ${player}'s success rate in matchups against ${params.opponent || 'this opponent'}?
+3. How does ${player} typically perform under similar game conditions?
+4. What's the historical accuracy for this type of bet?
+5. How does ${player}'s recent form impact this bet?
 
-Respond to these questions EXACTLY like this format:
-Question1{75}Additional explanation here
-Question2{80}Additional explanation here
-
-If you don't have enough information for any question, respond with Question{50} and explain why.
-Do not include any other text in your response besides the Question{number}explanation format.`;
+Base your analysis on historical performance, matchup statistics, and current form.
+Each response MUST start with "Question" followed by the number, then the percentage in curly braces, then a colon and explanation.`;
 
       const gptResponse = await callGPT(prompt);
+      console.log('Received GPT response:', gptResponse);
+      
       const parsedResults = parseGPTResponse(gptResponse);
+      console.log('Parsed results:', parsedResults);
 
-      const newInsights: InsightData[] = ANALYSIS_QUESTIONS.map((question, index) => ({
-        question,
-        value: parsedResults[index]?.value ?? 50,
-        explanation: parsedResults[index]?.explanation ?? "No explanation provided",
-        timestamp: Date.now() + (index * 1000),
-      }));
+      const newInsights: InsightData[] = ANALYSIS_QUESTIONS.map((question, index) => {
+        const insight = {
+          question,
+          value: parsedResults[index]?.value ?? 50,
+          explanation: parsedResults[index]?.explanation || "Analysis not available",
+          timestamp: Date.now() + (index * 1000),
+        };
+        console.log(`Created insight ${index + 1}:`, insight);
+        return insight;
+      });
 
+      console.log('Setting insights:', newInsights);
       setInsights(newInsights);
     } catch (error) {
-      console.error('Error fetching insights:', error);
-      // Fallback to mock data in case of error
+      console.error('Error in fetchAIInsights:', error);
+      // More informative fallback data
       const mockInsights: InsightData[] = ANALYSIS_QUESTIONS.map((question, index) => ({
         question,
         value: 50,
-        explanation: "Failed to fetch AI analysis. Using default values.",
+        explanation: "Unable to fetch AI analysis. Please try again later.",
         timestamp: Date.now() + (index * 1000),
       }));
       setInsights(mockInsights);
@@ -282,7 +329,7 @@ Do not include any other text in your response besides the Question{number}expla
       return;
     }
     
-    console.log('Fetching insights for:', { player, bet });
+    console.log('Starting analysis for:', { player, bet });
     fetchAIInsights();
   }, [player, bet]);
 
@@ -304,12 +351,20 @@ Do not include any other text in your response besides the Question{number}expla
       <GestureHandlerRootView style={{ flex: 1 }}>
         <ScrollView style={styles.scrollView}>
           <ThemedView style={styles.header}>
-            <ThemedText type="title" style={styles.title}>
-              AI Betting Insights
-            </ThemedText>
-            <ThemedText style={styles.subtitle}>
-              {player} - {bet}
-            </ThemedText>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <MaterialCommunityIcons name="arrow-left" size={24} color="#1E90FF" />
+            </TouchableOpacity>
+            <ThemedView style={styles.headerTextContainer}>
+              <ThemedText type="title" style={styles.title}>
+                AI Betting Insights
+              </ThemedText>
+              <ThemedText style={styles.subtitle}>
+                {player} - {bet}
+              </ThemedText>
+            </ThemedView>
           </ThemedView>
 
           <ThemedView style={styles.overallContainer}>
@@ -317,7 +372,7 @@ Do not include any other text in your response besides the Question{number}expla
             <ThemedText 
               style={[
                 styles.overallPercentage,
-                { color: calculateOverallPercentage(insights) > 50 ? '#4CAF50' : '#FF3B30' }
+                { color: calculateOverallPercentage(insights) > 50 ? '#1E90FF' : '#1E90FF' }
               ]}
             >
               {calculateOverallPercentage(insights)}%
@@ -346,14 +401,19 @@ Do not include any other text in your response besides the Question{number}expla
                 <ThemedView style={styles.insightValueContainer}>
                   <ThemedText style={[
                     styles.insightValue,
-                    { color: insight.value > 50 ? '#4CAF50' : '#FF3B30' }
+                    { color: insight.value > 50 ? '#1E90FF' : '#1E90FF' },
+                    { backgroundColor: insight.value > 50 ? '#000010' : '#000010' }
                   ]}>
                     {insight.value}%
                   </ThemedText>
                   <View style={[
                     styles.confidenceBar,
                     { width: `${insight.value}%` },
-                    { backgroundColor: insight.value > 50 ? '#4CAF5040' : '#FF3B3040' }
+                    { 
+                      backgroundColor: insight.value > 50 
+                        ? 'rgba(30, 144, 255, 0.7)'
+                        : 'rgba(30, 144, 255, 0.4)'
+                    }
                   ]} />
                 </ThemedView>
                 <ThemedText style={styles.insightExplanation}>

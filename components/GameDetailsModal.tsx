@@ -73,7 +73,7 @@ Please provide:
   };
 
   const handleAnalyticsPress = () => {
-    // Navigate to analytics with all available game details
+    // Close modal and navigate to analytics with all game details
     onClose();
     router.push({
       pathname: '/analytics',
@@ -85,7 +85,7 @@ Please provide:
         sport: game.sport,
         position: game.position,
         time: game.time,
-        popularity: game.popularity?.toString()
+        popularity: game.popularity
       }
     });
   };
