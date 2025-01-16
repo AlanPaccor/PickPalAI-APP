@@ -16,26 +16,10 @@ import Animated, {
   Easing,
   runOnJS,
 } from 'react-native-reanimated';
-import { doc, getDoc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, onSnapshot, serverTimestamp, getDocs, query, orderBy, limit, collection } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import { useBetCount } from '../hooks/useBetCount';
 import { useTranslation } from 'react-i18next';
-
-// Mock data
-const recentWinners = [
-  { team: 'Celtics', score: '112-98', opponent: 'Lakers', league: 'NBA' },
-  { team: 'Barcelona', score: '3-1', opponent: 'Real Madrid', league: 'La Liga' },
-  { team: 'Chiefs', score: '31-17', opponent: 'Raiders', league: 'NFL' },
-  { team: 'Man City', score: '2-0', opponent: 'Arsenal', league: 'EPL' },
-  { team: 'Rangers', score: '4-2', opponent: 'Bruins', league: 'NHL' },
-  { team: 'Yankees', score: '8-3', opponent: 'Red Sox', league: 'MLB' },
-];
-
-const hotPicks = [
-  { player: 'LeBron James', stat: 'Points > 25.5', confidence: 78 },
-  { player: 'Nikola Jokic', stat: 'Assists > 8.5', confidence: 82 },
-  { player: 'Luka Doncic', stat: 'Rebounds > 9.5', confidence: 75 },
-];
 
 interface Notification {
   id: string;
@@ -70,6 +54,29 @@ const tempNotifications: Notification[] = [
     read: true,
   },
 ];
+
+interface RecentWinner {
+  team: string;
+  score: string;
+  opponent: string;
+  league: string;
+}
+
+interface HotPick {
+  player: string;
+  stat: string;
+  confidence: number;
+}
+
+interface DailyInsights {
+  aiReport: {
+    title: string;
+    insights: string[];
+  };
+  hotPicks: HotPick[];
+  recentWinners: RecentWinner[];
+  createdAt: string;
+}
 
 const NotificationsModal = ({ 
   visible, 
@@ -162,6 +169,7 @@ const NotificationsModal = ({
 
           <ScrollView 
             style={styles.notificationList}
+            contentContainerStyle={styles.notificationListContent}
             showsVerticalScrollIndicator={false}
           >
             {loading ? (
@@ -199,7 +207,40 @@ const NotificationsModal = ({
   );
 };
 
-const RecentWinners = () => {
+const useDailyInsights = () => {
+  const [insights, setInsights] = useState<DailyInsights | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchInsights = async () => {
+      try {
+        // Get the most recent document from dailyInsights collection
+        const querySnapshot = await getDocs(
+          query(
+            collection(db, 'dailyInsights'), 
+            orderBy('createdAt', 'desc'), 
+            limit(1)
+          )
+        );
+
+        if (!querySnapshot.empty) {
+          const doc = querySnapshot.docs[0];
+          setInsights(doc.data() as DailyInsights);
+        }
+      } catch (error) {
+        console.error('Error fetching daily insights:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInsights();
+  }, []);
+
+  return { insights, loading };
+};
+
+const RecentWinners = ({ winners }: { winners: RecentWinner[] }) => {
   const scrollViewRef = useRef<ScrollView>(null);
   const [contentWidth, setContentWidth] = useState(0);
   const translateX = useSharedValue(0);
@@ -231,7 +272,7 @@ const RecentWinners = () => {
     transform: [{ translateX: translateX.value }],
   }));
 
-  const repeatedWinners = [...recentWinners, ...recentWinners, ...recentWinners];
+  const repeatedWinners = [...winners, ...winners, ...winners];
 
   return (
     <ThemedView style={styles.section}>
@@ -246,9 +287,19 @@ const RecentWinners = () => {
               <ThemedView style={styles.leagueTag}>
                 <ThemedText style={styles.leagueText}>{win.league}</ThemedText>
               </ThemedView>
-              <ThemedText style={styles.teamName}>{win.team}</ThemedText>
+              <ThemedText 
+                style={styles.teamName}
+                numberOfLines={1}
+              >
+                {win.team}
+              </ThemedText>
               <ThemedText style={styles.scoreText}>{win.score}</ThemedText>
-              <ThemedText style={styles.opponentText}>vs {win.opponent}</ThemedText>
+              <ThemedText 
+                style={styles.opponentText}
+                numberOfLines={1}
+              >
+                vs {win.opponent}
+              </ThemedText>
             </ThemedView>
           ))}
         </Animated.View>
@@ -342,6 +393,7 @@ export default function IndexScreen() {
   const [showNotifications, setShowNotifications] = useState(false);
   const { notifications, loading: notificationsLoading, markAsRead } = useNotifications(user?.uid);
   const [checkingSubscription, setCheckingSubscription] = useState(false);
+  const { insights, loading: insightsLoading } = useDailyInsights();
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -492,7 +544,7 @@ export default function IndexScreen() {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || insightsLoading) {
     return (
       <ThemedView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1E90FF" />
@@ -547,13 +599,15 @@ export default function IndexScreen() {
         </ThemedView>
 
         {/* Recent Winners */}
-        <RecentWinners />
+        {insights?.recentWinners && (
+          <RecentWinners winners={insights.recentWinners} />
+        )}
 
         {/* Today's Hot Picks */}
         <ThemedView style={styles.section}>
           <ThemedText style={styles.sectionTitle}>🔥 Today's Hot Picks</ThemedText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.picksScroll}>
-            {hotPicks.map((pick, index) => (
+            {insights?.hotPicks.map((pick, index) => (
               <ThemedView key={index} style={styles.pickCard}>
                 <ThemedText style={styles.pickPlayer}>{pick.player}</ThemedText>
                 <ThemedText style={styles.pickStat}>{pick.stat}</ThemedText>
@@ -567,10 +621,9 @@ export default function IndexScreen() {
 
         {/* AI Insights */}
         <ThemedView style={styles.insightsContainer}>
-          <ThemedText style={styles.insightTitle}>🤖 AI Daily Report</ThemedText>
+          <ThemedText style={styles.insightTitle}>{insights?.aiReport.title}</ThemedText>
           <ThemedText style={styles.insightText}>
-            Today's games favor over bets in NBA points (67% confidence) and NHL assists (72% confidence).
-            Market inefficiencies detected in MLB strikeout props.
+            {insights?.aiReport.insights.join('\n')}
           </ThemedText>
         </ThemedView>
       </ScrollView>
@@ -655,6 +708,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
+    paddingHorizontal: 4,
   },
   winnersScroll: {
     marginHorizontal: -16,
@@ -664,16 +718,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#000010',
     padding: 16,
     borderRadius: 12,
-    width: 144,
+    width: 160,
     borderWidth: 1,
     borderColor: '#FFFFFF20',
     marginRight: 12,
+    flex: 0,
   },
   leagueTag: {
-    backgroundColor: '#000010',
+    backgroundColor: '#FFFFFF10',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 6,
     alignSelf: 'flex-start',
     marginBottom: 8,
   },
@@ -684,9 +739,11 @@ const styles = StyleSheet.create({
   },
   teamName: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 4,
+    numberOfLines: 1,
+    ellipsizeMode: 'tail',
   },
   scoreText: {
     color: '#4CAF50',
@@ -697,6 +754,8 @@ const styles = StyleSheet.create({
   opponentText: {
     color: '#666',
     fontSize: 14,
+    numberOfLines: 1,
+    ellipsizeMode: 'tail',
   },
   winAmount: {
     color: '#4CAF50',
@@ -785,11 +844,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#000010',
     borderRadius: 12,
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
   },
   marqueeContent: {
     flexDirection: 'row',
     gap: 12,
-    paddingHorizontal: 12,
     paddingVertical: 12,
   },
   winnerRow: {
@@ -832,16 +892,16 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    maxHeight: '90%',
   },
   notificationModal: {
     backgroundColor: '#000010',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '90%',
+    height: '100%',
     borderWidth: 1,
     borderBottomWidth: 0,
     borderColor: '#FFFFFF20',
-    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
   },
   notificationHandle: {
     width: 40,
@@ -865,6 +925,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   notificationList: {
+    flex: 1,
     padding: 16,
   },
   notificationItem: {
@@ -899,5 +960,8 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     opacity: 0.6,
+  },
+  notificationListContent: {
+    paddingBottom: Platform.OS === 'ios' ? 34 : 16,
   },
 });
