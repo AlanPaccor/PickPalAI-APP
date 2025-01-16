@@ -33,6 +33,19 @@ const getSportIcon = (sportKey: string): IconName => {
   return iconMap[sportKey] || 'help-circle';
 };
 
+const getMarketDescription = (marketType: string): string => {
+  const descriptions: Record<string, string> = {
+    'h2h': 'Straight up winner of the game',
+    'spreads': 'Betting with point advantage/disadvantage',
+    'totals': 'Combined score of both teams',
+    'player_props': 'Individual player performance metrics',
+    'team_totals': 'Individual team score total',
+    'quarters': 'Quarter by quarter scoring',
+    'halves': 'First or second half scoring',
+  };
+  return descriptions[marketType] || marketType;
+};
+
 export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   game,
   visible,
@@ -180,6 +193,54 @@ Please provide:
                   label="Matchup"
                   value={`${game.team} vs ${game.opponent}`}
                 />
+              </ThemedView>
+            </ThemedView>
+
+            <ThemedView style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>{t('Betting Information')}</ThemedText>
+              <ThemedView style={styles.infoGrid}>
+                <InfoItem 
+                  icon="calendar-clock"
+                  label={t('Game Time')}
+                  value={game.time}
+                />
+                <InfoItem 
+                  icon="account-group"
+                  label="Matchup"
+                  value={`${game.team} vs ${game.opponent}`}
+                />
+                <InfoItem 
+                  icon="cash"
+                  label="Current Odds"
+                  value={game.odds.toFixed(2)}
+                />
+                <InfoItem 
+                  icon="chart-line"
+                  label="Line Movement"
+                  value={`${(game.odds - 1.8).toFixed(2)}`}
+                />
+                <InfoItem 
+                  icon="percent"
+                  label="Implied Probability"
+                  value={`${(1 / game.odds * 100).toFixed(1)}%`}
+                />
+                <InfoItem 
+                  icon="chart-bell-curve"
+                  label="Market Distribution"
+                  value={`${Math.round(100 / game.odds)}% - ${Math.round(100 - (100 / game.odds))}%`}
+                />
+              </ThemedView>
+            </ThemedView>
+
+            <ThemedView style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>{t('Market Details')}</ThemedText>
+              <ThemedView style={styles.marketDetails}>
+                <ThemedText style={styles.marketType}>
+                  {game.stat} • {game.position}
+                </ThemedText>
+                <ThemedText style={styles.marketDescription}>
+                  {getMarketDescription(game.stat)}
+                </ThemedText>
               </ThemedView>
             </ThemedView>
 
@@ -414,5 +475,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFFFFF80',
     lineHeight: 20,
+  },
+  marketDetails: {
+    padding: 16,
+  },
+  marketType: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  marketDescription: {
+    fontSize: 14,
+    color: '#FFFFFF80',
   },
 }); 

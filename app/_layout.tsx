@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { useColorScheme, StatusBar, View } from 'react-native';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import Colors from '@/constants/Colors';
 import Providers from './providers';
 import { useAuth } from './context/AuthContext';
@@ -17,7 +18,26 @@ function RootLayoutNav() {
 
   if (isLoading) {
     console.log('Still loading...');
-    return null;
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000' }}>
+        <Video
+          source={require('../assets/app/splash.mp4')}
+          rate={1.0}
+          volume={1.0}
+          isMuted={false}
+          resizeMode={ResizeMode.COVER}
+          shouldPlay
+          isLooping={false}
+          style={{ width: '100%', height: '100%' }}
+          onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
+            if ('isLoaded' in status && status.isLoaded && status.didJustFinish) {
+              // Video has finished playing
+              console.log('Splash video finished');
+            }
+          }}
+        />
+      </View>
+    );
   }
 
   if (!isAuthenticated) {

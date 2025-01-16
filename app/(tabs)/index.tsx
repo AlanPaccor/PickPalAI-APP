@@ -687,7 +687,7 @@ export default function IndexScreen() {
         <ThemedView style={styles.header}>
           <ThemedView style={styles.logoContainer}>
             <MaterialCommunityIcons name="trophy" size={32} color="#1E90FF" />
-            <ThemedText style={styles.logoText}>SPORTSAI</ThemedText>
+            <ThemedText style={styles.logoText}>BetSenseAI</ThemedText>
           </ThemedView>
           
           <TouchableOpacity 

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { db } from '../config/firebase';
-import { collection, query, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, getDocs } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 
 interface NotificationsContextType {
@@ -26,46 +26,18 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     }
 
     try {
-      // Get user's dismissed notifications and preferences
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-      const userData = userDocSnap.data();
-      const dismissedNotifications = userData?.dismissedNotifications || [];
-      const notificationPreferences = userData?.notificationPreferences || {};
-
-      console.log('User notification preferences:', notificationPreferences);
+      // Get user's dismissed notifications
+      const userDoc = await db.collection('users').doc(user.uid).get();
+      const dismissedNotifications = userDoc.data()?.dismissedNotifications || [];
 
       // Get all notifications
-      const notificationsRef = collection(db, 'notifications');
-      const notificationsSnap = await getDocs(notificationsRef);
+      const notificationsSnap = await getDocs(collection(db, 'notifications'));
       
-      console.log('All notifications:', notificationsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      // Count notifications that haven't been dismissed
+      const count = notificationsSnap.docs.filter(
+        doc => !dismissedNotifications.includes(doc.id)
+      ).length;
 
-      // Count notifications that:
-      // 1. Haven't been dismissed AND
-      // 2. Match user's notification preferences
-      const count = notificationsSnap.docs.filter(doc => {
-        const notification = doc.data();
-        const notificationType = notification.type;
-        
-        // Check if notification type is enabled (default to true if preference doesn't exist)
-        const isTypeEnabled = notificationPreferences[notificationType] !== false;
-        
-        // Check if notification hasn't been dismissed
-        const isNotDismissed = !dismissedNotifications.includes(doc.id);
-
-        console.log('Notification filtering:', {
-          id: doc.id,
-          type: notificationType,
-          isTypeEnabled,
-          isNotDismissed,
-          willShow: isTypeEnabled && isNotDismissed
-        });
-
-        return isTypeEnabled && isNotDismissed;
-      }).length;
-
-      console.log('Final unread count:', count);
       setUnreadCount(count);
     } catch (error) {
       console.error('Error loading notification count:', error);

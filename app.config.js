@@ -6,13 +6,13 @@ export default {
     slug: "BetSenseAI",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/app/icon.png",
     scheme: "myapp",
     userInterfaceStyle: "dark",
     splash: {
-      image: "./assets/images/splash.png",
+      image: "./assets/app/icon.png",
       resizeMode: "contain",
-      backgroundColor: "#1A1A1A"
+      backgroundColor: "#ffffff"
     },
     assetBundlePatterns: [
       "**/*"
@@ -23,10 +23,14 @@ export default {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
+        foregroundImage: "./assets/app/icon.png",
         backgroundColor: "#1A1A1A"
       },
-      userInterfaceStyle: "dark"
+      userInterfaceStyle: "dark",
+      package: "com.betsenseai.app",
+      compileSdkVersion: 34,
+      targetSdkVersion: 34,
+      buildToolsVersion: "34.0.0"
     },
     web: {
       favicon: "./assets/images/favicon.png"
@@ -51,11 +55,18 @@ export default {
       firebaseAppId: process.env.FIREBASE_APP_ID,
       stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
       eas: {
-        projectId: process.env.EAS_PROJECT_ID
+        projectId: "94ab4d25-a270-4cba-97eb-3fc1bfd720ff"
       }
     },
     plugins: [
-      "expo-router"
-    ]
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          enabled: true
+        }
+      ]
+    ],
+    sdkVersion: "52.0.0"
   }
 }; 

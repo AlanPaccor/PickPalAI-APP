@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { StyleSheet, Platform, TouchableOpacity, ScrollView, FlatList, StatusBar, Image, ActivityIndicator, TextInput, View, RefreshControl } from 'react-native';
+import { StyleSheet, Platform, TouchableOpacity, ScrollView, FlatList, StatusBar, Image, ActivityIndicator, TextInput, View, RefreshControl, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { debounce } from 'lodash';
 import { Game } from '@/types/sports';
@@ -12,48 +12,192 @@ import axios from 'axios';
 import { SearchBar } from '@/components/SearchBar';
 import { GameDetailsModal } from '@/components/GameDetailsModal';
 import { useTranslation } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { format } from 'date-fns';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const SPORTS: Array<{
   id: string;
   name: string;
-  icon: IconName;
   color: string;
 }> = [
-  { id: 'nfl', name: 'NFL', icon: 'football', color: '#1E3A5F' },
-  { id: 'nba', name: 'NBA', icon: 'basketball', color: '#1E3A5F' },
-  { id: 'nhl', name: 'NHL', icon: 'hockey-puck', color: '#1E3A5F' },
-  { id: 'mlb', name: 'MLB', icon: 'baseball-bat', color: '#1E3A5F' },
-  { id: 'nfl4q', name: 'NFL4Q', icon: 'football', color: '#1E3A5F' },
-  { id: 'cfb', name: 'CFB', icon: 'football', color: '#1E3A5F' },
-  { id: 'nba4q', name: 'NBA4Q', icon: 'basketball', color: '#1E3A5F' },
-  { id: 'soccer', name: 'Soccer', icon: 'soccer', color: '#1E3A5F' },
-  { id: 'tennis', name: 'Tennis', icon: 'tennis', color: '#1E3A5F' },
-  { id: 'mma', name: 'MMA', icon: 'boxing-glove', color: '#1E3A5F' },
+  { id: 'americanfootball_nfl', name: 'NFL', color: '#1E3A5F' },
+  { id: 'americanfootball_ncaaf', name: 'NCAAF', color: '#1E3A5F' },
+  { id: 'basketball_nba', name: 'NBA', color: '#C9082A' },
+  { id: 'basketball_ncaab', name: 'NCAAB', color: '#C9082A' },
+  { id: 'icehockey_nhl', name: 'NHL', color: '#041E42' },
+  { id: 'baseball_mlb', name: 'MLB', color: '#BF0D3E' },
+  { id: 'soccer_epl', name: 'EPL', color: '#3D195B' },
+  { id: 'soccer_uefa_champions_league', name: 'UCL', color: '#00235D' },
+  { id: 'soccer_uefa_europa_league', name: 'UEL', color: '#FF6900' },
+  { id: 'soccer_spain_la_liga', name: 'La Liga', color: '#EE8707' },
+  { id: 'soccer_italy_serie_a', name: 'Serie A', color: '#008FD7' },
+  { id: 'soccer_germany_bundesliga', name: 'Bundesliga', color: '#D20515' },
+  { id: 'soccer_france_ligue_one', name: 'Ligue 1', color: '#091C3E' },
+  { id: 'mma_mixed_martial_arts', name: 'MMA', color: '#D20A0A' },
+  { id: 'boxing_boxing', name: 'Boxing', color: '#D20A0A' },
+  { id: 'cricket_ipl', name: 'IPL', color: '#1B4A91' },
 ];
 
-const MOCK_PLAYERS = [
-  { name: 'Patrick Mahomes', team: 'Chiefs', position: 'NFL', sport: 'americanfootball', stat: 'Pass Yards' },
-  { name: 'LeBron James', team: 'Lakers', position: 'NBA', sport: 'basketball', stat: 'Points' },
-  { name: 'Connor McDavid', team: 'Oilers', position: 'NHL', sport: 'icehockey', stat: 'Points' },
-  { name: 'Shohei Ohtani', team: 'Dodgers', position: 'MLB', sport: 'baseball', stat: 'Home Runs' },
-  { name: 'Travis Kelce', team: 'Chiefs', position: 'NFL', sport: 'americanfootball', stat: 'Rec Yards' },
-  { name: 'Nikola Jokic', team: 'Nuggets', position: 'NBA', sport: 'basketball', stat: 'Rebounds' },
-  { name: 'Erling Haaland', team: 'Man City', position: 'EPL', sport: 'soccer', stat: 'Goals' },
-  { name: 'Auston Matthews', team: 'Leafs', position: 'NHL', sport: 'icehockey', stat: 'Goals' },
-];
+const API_KEY = 'b92441712416a49eb772ca291a151b29';
+const API_BASE_URL = 'https://api.the-odds-api.com/v4/sports';
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes in milliseconds
+const CACHE_PREFIX = 'odds_cache_';
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute window
+const MAX_REQUESTS_PER_WINDOW = 10; // Maximum requests per minute
+const RATE_LIMIT_KEY = 'odds_rate_limit';
 
-const MOCK_OPPONENTS = [
-  'Raiders', 'Warriors', 'Flames', 'Yankees', 
-  'Broncos', 'Celtics', 'Arsenal', 'Canadiens',
-  'Bills', 'Heat', 'Rangers', 'Astros'
-];
+interface OddsApiResponse {
+  id: string;
+  sport_key: string;
+  sport_title: string;
+  commence_time: string;
+  home_team: string;
+  away_team: string;
+  bookmakers: Array<{
+    key: string;
+    title: string;
+    markets: Array<{
+      key: string;
+      outcomes: Array<{
+        name: string;
+        price: number;
+      }>;
+    }>;
+  }>;
+}
+
+interface RateLimitData {
+  requests: number;
+  windowStart: number;
+}
+
+interface CacheData<T> {
+  data: T;
+  timestamp: number;
+  version: string; // Add version to invalidate cache on app updates
+}
+
+const CACHE_VERSION = '1.0';
+
+const checkRateLimit = async (): Promise<boolean> => {
+  try {
+    const now = Date.now();
+    const rateLimitData = await AsyncStorage.getItem(RATE_LIMIT_KEY);
+    let rateLimit: RateLimitData;
+
+    if (rateLimitData) {
+      rateLimit = JSON.parse(rateLimitData);
+      // Reset if window has expired
+      if (now - rateLimit.windowStart > RATE_LIMIT_WINDOW) {
+        rateLimit = { requests: 0, windowStart: now };
+      }
+    } else {
+      rateLimit = { requests: 0, windowStart: now };
+    }
+
+    // Check if limit exceeded
+    if (rateLimit.requests >= MAX_REQUESTS_PER_WINDOW) {
+      return false;
+    }
+
+    // Increment request count
+    rateLimit.requests++;
+    await AsyncStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(rateLimit));
+    return true;
+  } catch (error) {
+    console.error('Rate limit check error:', error);
+    return true; // Allow request if rate limit check fails
+  }
+};
+
+const getCacheKey = (sport: string, filter: string) => `${CACHE_PREFIX}${sport}_${filter}`;
+
+const getFromCache = async <T>(cacheKey: string): Promise<T | null> => {
+  try {
+    const cached = await AsyncStorage.getItem(cacheKey);
+    if (cached) {
+      const cacheData: CacheData<T> = JSON.parse(cached);
+      if (
+        Date.now() - cacheData.timestamp < CACHE_EXPIRY &&
+        cacheData.version === CACHE_VERSION
+      ) {
+        console.log(`Cache hit for ${cacheKey}`);
+        return cacheData.data;
+      }
+    }
+    console.log(`Cache miss for ${cacheKey}`);
+    return null;
+  } catch (error) {
+    console.error('Cache read error:', error);
+    return null;
+  }
+};
+
+const saveToCache = async <T>(cacheKey: string, data: T): Promise<void> => {
+  try {
+    const cacheData: CacheData<T> = {
+      data,
+      timestamp: Date.now(),
+      version: CACHE_VERSION,
+    };
+    await AsyncStorage.setItem(cacheKey, JSON.stringify(cacheData));
+    console.log(`Cached data for ${cacheKey}`);
+  } catch (error) {
+    console.error('Cache write error:', error);
+  }
+};
+
+const transformOddsData = (oddsData: OddsApiResponse[], currentFilter: string): Game[] => {
+  return oddsData.map(item => {
+    const bookmaker = item.bookmakers[0];
+    const market = bookmaker?.markets?.find(m => m.key === currentFilter) || bookmaker?.markets[0];
+    const outcome = market?.outcomes[0];
+
+    return {
+      id: item.id,
+      player: `${item.home_team} vs ${item.away_team}`,
+      position: item.sport_title,
+      team: item.home_team,
+      opponent: item.away_team,
+      prediction: outcome?.price?.toFixed(2) || "N/A",
+      stat: market?.key || "odds",
+      popularity: "New",
+      time: format(new Date(item.commence_time), 'h:mm a'),
+      sport: item.sport_key,
+      jersey: "0",
+      jerseyColor: '#1E3A5F',
+      odds: outcome?.price || 1,
+      trend: Math.random() * 100,
+      value: Math.random() * 100,
+    };
+  });
+};
+
+const cleanupOldCache = async () => {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const oddsKeys = keys.filter(key => key.startsWith(CACHE_PREFIX));
+    
+    for (const key of oddsKeys) {
+      const cached = await AsyncStorage.getItem(key);
+      if (cached) {
+        const { timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp > CACHE_EXPIRY) {
+          await AsyncStorage.removeItem(key);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Cache cleanup error:', error);
+  }
+};
 
 export default function ExploreScreen() {
   const { t } = useTranslation();
-  const [selectedSport, setSelectedSport] = useState('nfl');
-  const [selectedFilter, setSelectedFilter] = useState('popular');
+  const [selectedSport, setSelectedSport] = useState('americanfootball_nfl');
+  const [selectedFilter, setSelectedFilter] = useState('h2h');
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -68,21 +212,72 @@ export default function ExploreScreen() {
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   const FILTERS = useMemo(() => [
-    { id: 'popular', label: t('popular'), type: 'popularity' },
-    { id: 'trending', label: t('trending'), type: 'trending' },
-    { id: 'value', label: t('bestValue'), type: 'value' },
+    { 
+      id: 'h2h', 
+      label: t('Winner'), 
+      type: 'market',
+      description: t('Bet on which team will win')
+    },
+    { 
+      id: 'spreads', 
+      label: t('Spread'), 
+      type: 'market',
+      description: t('Bet with point advantage/disadvantage')
+    },
+    { 
+      id: 'totals', 
+      label: t('Over/Under'), 
+      type: 'market',
+      description: t('Bet on total combined score')
+    },
+    { 
+      id: 'outrights', 
+      label: t('Championship'), 
+      type: 'market',
+      description: t('Bet on tournament winner')
+    },
+    { 
+      id: 'player_props', 
+      label: t('Player Props'), 
+      type: 'market',
+      description: t('Bet on player performance')
+    },
+    { 
+      id: 'game_props', 
+      label: t('Game Props'), 
+      type: 'market',
+      description: t('Bet on specific game events')
+    },
     // Sport-specific filters
-    { id: 'passing', label: t('passingYards'), type: 'stat', sports: ['nfl', 'nfl4q', 'cfb'] },
-    { id: 'receiving', label: t('receivingYards'), type: 'stat', sports: ['nfl', 'nfl4q', 'cfb'] },
-    { id: 'rushing', label: t('rushingYards'), type: 'stat', sports: ['nfl', 'nfl4q', 'cfb'] },
-    { id: 'points', label: t('points'), type: 'stat', sports: ['nba', 'nba4q'] },
-    { id: 'rebounds', label: t('rebounds'), type: 'stat', sports: ['nba', 'nba4q'] },
-    { id: 'assists', label: t('assists'), type: 'stat', sports: ['nba', 'nba4q'] },
-    { id: 'goals', label: t('goals'), type: 'stat', sports: ['soccer'] },
-    { id: 'shots', label: t('shots'), type: 'stat', sports: ['nhl', 'soccer'] },
-    { id: 'hits', label: t('hits'), type: 'stat', sports: ['mlb'] },
-    { id: 'strikeouts', label: t('strikeouts'), type: 'stat', sports: ['mlb'] },
-  ], [t]);
+    ...selectedSport.includes('basketball') ? [
+      { 
+        id: 'team_totals', 
+        label: t('Team Points'), 
+        type: 'market',
+        description: t('Bet on team score')
+      },
+      {
+        id: 'first_half',
+        label: t('1st Half'),
+        type: 'market',
+        description: t('First half betting')
+      }
+    ] : [],
+    ...selectedSport.includes('football') ? [
+      { 
+        id: 'alternate_spreads', 
+        label: t('Alt Spreads'), 
+        type: 'market',
+        description: t('Different point spreads')
+      },
+      {
+        id: 'quarters',
+        label: t('Quarters'),
+        type: 'market',
+        description: t('Quarter by quarter betting')
+      }
+    ] : [],
+  ], [t, selectedSport]);
 
   const handleSearch = useCallback((text: string) => {
     setSearchText(text);
@@ -111,112 +306,71 @@ export default function ExploreScreen() {
   }, [allGames, searchText]);
 
   const loadGames = useCallback(async () => {
-    console.log('loadGames called, loading:', loading, 'page:', page);
     if (loading || refreshing) return;
-    setLoading(true);
     
     try {
-      console.log('generating games for sport:', selectedSport);
-      const mockGames: Game[] = Array.from({ length: 6 }, (_, index) => {
-        const eligiblePlayers = selectedSport === 'all' 
-          ? MOCK_PLAYERS 
-          : MOCK_PLAYERS.filter(p => p.position.toLowerCase() === selectedSport);
-        
-        const playerInfo = eligiblePlayers.length > 0 
-          ? eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)]
-          : MOCK_PLAYERS[Math.floor(Math.random() * MOCK_PLAYERS.length)];
+      setLoading(true);
+      
+      // Check rate limit
+      const canMakeRequest = await checkRateLimit();
+      if (!canMakeRequest) {
+        console.log('Rate limit exceeded');
+        Alert.alert(
+          t('rateLimit'),
+          t('rateLimitMessage'),
+          [{ text: t('ok') }]
+        );
+        return;
+      }
 
-        const opponent = MOCK_OPPONENTS[Math.floor(Math.random() * MOCK_OPPONENTS.length)];
-        const prediction = (Math.random() * 30 + 10).toFixed(1);
-        const popularity = Math.floor(Math.random() * 200) + 'K';
-        const hour = Math.floor(Math.random() * 12) + 1;
-        const minute = Math.floor(Math.random() * 60);
-        const ampm = Math.random() > 0.5 ? 'AM' : 'PM';
-        
-        // Generate a truly unique ID using timestamp and random number
-        const uniqueId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${page}-${index}`;
-        
-        // Generate random metrics for filtering
-        const odds = Math.random() * 2 + 0.5; // odds between 0.5 and 2.5
-        const trend = Math.random() * 100; // trending score 0-100
-        const value = Math.random() * 100; // value score 0-100
-        
-        return {
-          id: uniqueId,
-          player: playerInfo.name,
-          position: playerInfo.position,
-          team: playerInfo.team,
-          opponent: opponent,
-          prediction: prediction,
-          stat: playerInfo.stat,
-          popularity: popularity,
-          time: `${hour}:${minute.toString().padStart(2, '0')} ${ampm}`,
-          sport: playerInfo.sport,
-          jersey: Math.floor(Math.random() * 99).toString(),
-          jerseyColor: '#' + Math.floor(Math.random()*16777215).toString(16),
-          odds,
-          trend,
-          value,
-          popularity,
-        };
-      });
+      const cacheKey = getCacheKey(selectedSport, selectedFilter);
+      const cachedData = await getFromCache<Game[]>(cacheKey);
+      
+      if (cachedData) {
+        setGames(prev => [...prev, ...cachedData]);
+        setAllGames(prev => [...prev, ...cachedData]);
+        setPage(prev => prev + 1);
+        if (!isInitialLoadDone) setIsInitialLoadDone(true);
+        return;
+      }
 
-      // Filter games based on selected filter
-      const filteredGames = mockGames.filter(game => {
-        switch (selectedFilter) {
-          case 'popular':
-            return game.odds && game.odds > 1.8; // Games with better odds are marked as popular
-          case 'trending':
-            return game.trend && game.trend > 70; // Games with high trending score
-          case 'value':
-            return game.value && game.value > 80; // Games with high value score
-          case 'passing':
-            return game.stat?.toLowerCase().includes('pass');
-          case 'receiving':
-            return game.stat?.toLowerCase().includes('rec');
-          case 'rushing':
-            return game.stat?.toLowerCase().includes('rush');
-          case 'points':
-            return game.stat?.toLowerCase().includes('points');
-          case 'rebounds':
-            return game.stat?.toLowerCase().includes('rebounds');
-          case 'assists':
-            return game.stat?.toLowerCase().includes('assists');
-          case 'goals':
-            return game.stat?.toLowerCase().includes('goals');
-          case 'shots':
-            return game.stat?.toLowerCase().includes('shots');
-          case 'hits':
-            return game.stat?.toLowerCase().includes('hits');
-          case 'strikeouts':
-            return game.stat?.toLowerCase().includes('strikeouts');
-          default:
-            return true;
+      const response = await axios.get(`${API_BASE_URL}/${selectedSport}/odds`, {
+        params: {
+          apiKey: API_KEY,
+          regions: 'us',
+          markets: selectedFilter === 'outrights' ? 'outrights' : 'h2h,spreads,totals',
+          oddsFormat: 'decimal',
+          dateFormat: 'iso',
         }
       });
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!response.data || response.data.length === 0) {
+        console.log('No games available');
+        return;
+      }
 
-      const newGameIds = new Set([...loadedGameIds, ...filteredGames.map(game => game.id)]);
-      setLoadedGameIds(newGameIds);
-      
-      setGames(prev => {
-        const newGames = [...prev, ...filteredGames];
-        console.log('total games after update:', newGames.length);
-        return newGames;
-      });
-      
-      setAllGames(prev => [...prev, ...filteredGames]);
-      
+      const transformedGames = transformOddsData(response.data, selectedFilter);
+      await saveToCache(cacheKey, transformedGames);
+
+      setGames(prev => [...prev, ...transformedGames]);
+      setAllGames(prev => [...prev, ...transformedGames]);
       setPage(prev => prev + 1);
       if (!isInitialLoadDone) setIsInitialLoadDone(true);
 
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if (status === 429) {
+          Alert.alert(t('apiLimit'), t('apiLimitMessage'));
+        } else {
+          Alert.alert(t('error'), t('errorLoadingGames'));
+        }
+      }
       console.error('Error loading games:', error);
     } finally {
       setLoading(false);
     }
-  }, [page, loading, loadedGameIds, selectedSport, selectedFilter, isInitialLoadDone, refreshing]);
+  }, [page, loading, loadedGameIds, selectedSport, selectedFilter, isInitialLoadDone, refreshing, t]);
 
   useEffect(() => {
     setGames([]);
@@ -241,11 +395,12 @@ export default function ExploreScreen() {
   }, [loadGames]);
 
   const renderGameCard = ({ item }: { item: Game }) => {
-    // Determine if prediction suggests "more" or "less"
-    const isMorePredicted = Math.random() > 0.5; // Replace this with your actual logic
+    // For over/under markets, if odds > 1.9 it usually means "under" is favored
+    const isUnderFavored = item.odds > 1.9;
 
     return (
       <TouchableOpacity 
+        key={`game-${item.id}`}
         style={styles.gameCard}
         onPress={() => {
           setSelectedGame(item);
@@ -253,16 +408,6 @@ export default function ExploreScreen() {
         }}
       >
         <ThemedView style={styles.gameCardInner}>
-          <ThemedView style={styles.jerseyContainer}>
-            <ThemedView style={styles.sportIconContainer}>
-              <MaterialCommunityIcons 
-                name={getSportIcon(item.sport)}
-                size={24} 
-                color="white"
-              />
-            </ThemedView>
-          </ThemedView>
-
           <ThemedView style={styles.mainContent}>
             <ThemedView style={styles.playerInfo}>
               <ThemedText style={styles.position}>{item.position}</ThemedText>
@@ -276,8 +421,7 @@ export default function ExploreScreen() {
             </ThemedView>
 
             <ThemedView style={styles.popularityContainer}>
-              <MaterialCommunityIcons name="fire" size={14} color="#FF9800" />
-              <ThemedText style={styles.popularityText}>{item.popularity}</ThemedText>
+              <ThemedText style={styles.popularityText}>Odds: {item.odds.toFixed(2)}</ThemedText>
             </ThemedView>
           </ThemedView>
         </ThemedView>
@@ -286,34 +430,34 @@ export default function ExploreScreen() {
           <ThemedView 
             style={[
               styles.actionButton,
-              !isMorePredicted && styles.actionButtonHighlight
+              isUnderFavored && styles.actionButtonHighlight
             ]}
           >
             <MaterialCommunityIcons 
               name="chevron-down" 
               size={20} 
-              color={!isMorePredicted ? "#FFFFFF" : "#FFFFFF80"} 
+              color={isUnderFavored ? "#FFFFFF" : "#FFFFFF80"} 
             />
             <ThemedText style={[
               styles.actionButtonText,
-              !isMorePredicted && styles.actionButtonTextHighlight
-            ]}>Less</ThemedText>
+              isUnderFavored && styles.actionButtonTextHighlight
+            ]}>Under</ThemedText>
           </ThemedView>
           <ThemedView 
             style={[
               styles.actionButton,
-              isMorePredicted && styles.actionButtonHighlight
+              !isUnderFavored && styles.actionButtonHighlight
             ]}
           >
             <MaterialCommunityIcons 
               name="chevron-up" 
               size={20} 
-              color={isMorePredicted ? "#FFFFFF" : "#FFFFFF80"} 
+              color={!isUnderFavored ? "#FFFFFF" : "#FFFFFF80"} 
             />
             <ThemedText style={[
               styles.actionButtonText,
-              isMorePredicted && styles.actionButtonTextHighlight
-            ]}>More</ThemedText>
+              !isUnderFavored && styles.actionButtonTextHighlight
+            ]}>Over</ThemedText>
           </ThemedView>
         </ThemedView>
       </TouchableOpacity>
@@ -372,7 +516,7 @@ export default function ExploreScreen() {
         style={styles.sportsScroll}
         renderItem={({item: sport}) => (
           <TouchableOpacity
-            key={sport.id}
+            key={`sport-${sport.id}`}
             style={[
               styles.sportTab,
               selectedSport === sport.id && styles.sportTabSelected,
@@ -384,7 +528,7 @@ export default function ExploreScreen() {
             <ThemedText style={styles.sportText}>{sport.name}</ThemedText>
           </TouchableOpacity>
         )}
-        keyExtractor={item => item.id}
+        keyExtractor={item => `sport-${item.id}`}
       />
       <FlatList
         horizontal
@@ -393,7 +537,7 @@ export default function ExploreScreen() {
         style={styles.filtersScroll}
         renderItem={({item: filter}) => (
           <TouchableOpacity
-            key={filter.id}
+            key={`filter-${filter.id}`}
             style={[
               styles.filterTab,
               selectedFilter === filter.id && styles.filterTabSelected,
@@ -408,7 +552,7 @@ export default function ExploreScreen() {
             </ThemedText>
           </TouchableOpacity>
         )}
-        keyExtractor={item => item.id}
+        keyExtractor={item => `filter-${item.id}`}
       />
     </ThemedView>
   ), [selectedSport, selectedFilter, FILTERS]);
@@ -425,6 +569,10 @@ export default function ExploreScreen() {
     );
   }, [selectedSport]);
 
+  useEffect(() => {
+    cleanupOldCache();
+  }, []);
+
   return (
     <ThemedView style={styles.container}>
       <ListHeader
@@ -440,7 +588,7 @@ export default function ExploreScreen() {
         key="two-column-grid"
         data={filteredGames}
         renderItem={renderGameCard}
-        keyExtractor={item => item.id}
+        keyExtractor={item => `game-${item.id}`}
         onEndReached={() => {
           if (!loading && !refreshing && !searchText) {
             loadGames();

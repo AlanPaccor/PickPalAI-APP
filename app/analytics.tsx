@@ -70,8 +70,8 @@ function parseGPTResponse(response: string): { value: number; explanation: strin
     
     lines.forEach(line => {
       console.log('Processing line:', line);
-      // Look for patterns like "Question1{75}: Explanation" or "Question1{75} Explanation"
-      const match = line.match(/Question\d+{(\d+)}[:\s]*(.*)/);
+      // Make the regex more flexible to handle variations in format
+      const match = line.match(/Question\s*\d+\s*{(\d+)}:?\s*(.*)/i);
       if (match) {
         console.log('Found match:', match);
         const value = parseInt(match[1], 10);
@@ -81,10 +81,16 @@ function parseGPTResponse(response: string): { value: number; explanation: strin
     });
 
     console.log('Parsed results:', results);
+    
+    // If no results were parsed, throw an error
+    if (results.length === 0) {
+      throw new Error('No valid insights found in response');
+    }
+    
     return results;
   } catch (error) {
     console.error('Error parsing GPT response:', error);
-    return [];
+    throw error; // Re-throw to handle in fetchAIInsights
   }
 }
 
@@ -160,6 +166,7 @@ const AnalyticsScreen: React.FC = () => {
       fontWeight: 'bold',
       marginBottom: 8,
       color: '#1E90FF',
+      backgroundColor: '#000010',
     },
     subtitle: {
       fontSize: 16,
@@ -254,6 +261,23 @@ const AnalyticsScreen: React.FC = () => {
       flex: 1,
       alignItems: 'center',
     },
+    loadingContent: {
+      alignItems: 'center',
+      gap: 12,
+    },
+    analyzingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    analyzingText: {
+      fontSize: 16,
+      color: '#1E90FF',
+      fontWeight: '600',
+    },
+    loadingDots: {
+      opacity: 0.8,
+    },
   });
 
   const fetchAIInsights = async () => {
@@ -261,7 +285,7 @@ const AnalyticsScreen: React.FC = () => {
       setLoading(true);
       console.log('Fetching insights with params:', params);
 
-      // Update the prompt to be more explicit about the response format
+      // Define the prompt
       const prompt = `Analyze this sports betting prediction with specific percentages and explanations:
 
 Game Details:
@@ -290,33 +314,44 @@ Base your analysis on historical performance, matchup statistics, and current fo
 Each response MUST start with "Question" followed by the number, then the percentage in curly braces, then a colon and explanation.`;
 
       const gptResponse = await callGPT(prompt);
-      console.log('Received GPT response:', gptResponse);
-      
+      console.log('Raw GPT response:', gptResponse);
+
+      // Add validation for the response
+      if (!gptResponse || typeof gptResponse !== 'string') {
+        throw new Error('Invalid GPT response format');
+      }
+
       const parsedResults = parseGPTResponse(gptResponse);
-      console.log('Parsed results:', parsedResults);
+      console.log('Successfully parsed results:', parsedResults);
 
       const newInsights: InsightData[] = ANALYSIS_QUESTIONS.map((question, index) => {
-        const insight = {
+        if (!parsedResults[index]) {
+          console.error(`Missing parsed result for question ${index + 1}`);
+        }
+        
+        return {
           question,
           value: parsedResults[index]?.value ?? 50,
           explanation: parsedResults[index]?.explanation || "Analysis not available",
           timestamp: Date.now() + (index * 1000),
         };
-        console.log(`Created insight ${index + 1}:`, insight);
-        return insight;
       });
 
       console.log('Setting insights:', newInsights);
       setInsights(newInsights);
     } catch (error) {
       console.error('Error in fetchAIInsights:', error);
-      // More informative fallback data
+      
+      // Add user-friendly error messages
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      
       const mockInsights: InsightData[] = ANALYSIS_QUESTIONS.map((question, index) => ({
         question,
         value: 50,
-        explanation: "Unable to fetch AI analysis. Please try again later.",
+        explanation: `Error: ${errorMessage}. Please try again later.`,
         timestamp: Date.now() + (index * 1000),
       }));
+      
       setInsights(mockInsights);
     } finally {
       setLoading(false);
@@ -336,7 +371,18 @@ Each response MUST start with "Question" followed by the number, then the percen
   if (loading) {
     return (
       <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1E90FF" />
+        <View style={styles.loadingContent}>
+          <ActivityIndicator size="large" color="#1E90FF" />
+          <View style={styles.analyzingContainer}>
+            <ThemedText style={styles.analyzingText}>Analyzing</ThemedText>
+            <MaterialCommunityIcons 
+              name="dots-horizontal" 
+              size={24} 
+              color="#1E90FF"
+              style={styles.loadingDots}
+            />
+          </View>
+        </View>
       </ThemedView>
     );
   }
