@@ -19,7 +19,15 @@ function RootLayoutNav() {
   if (isLoading) {
     console.log('Still loading...');
     return (
-      <View style={{ flex: 1, backgroundColor: '#000' }}>
+      <View style={{ 
+        flex: 1, 
+        backgroundColor: '#000',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+      }}>
         <Video
           source={require('../assets/app/splash.mp4')}
           rate={1.0}
@@ -28,7 +36,15 @@ function RootLayoutNav() {
           resizeMode={ResizeMode.COVER}
           shouldPlay
           isLooping={false}
-          style={{ width: '100%', height: '100%' }}
+          style={{ 
+            width: '100%', 
+            height: '100%',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
           onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
             if ('isLoaded' in status && status.isLoaded && status.didJustFinish) {
               // Video has finished playing

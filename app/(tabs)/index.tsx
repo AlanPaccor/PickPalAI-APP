@@ -176,7 +176,8 @@ const NotificationsModal = ({
       const dismissedNotifications = userDoc.data()?.dismissedNotifications || [];
 
       await updateDoc(userRef, {
-        dismissedNotifications: [...dismissedNotifications, notificationId]
+        dismissedNotifications: [...dismissedNotifications, notificationId],
+        lastNotificationCheck: serverTimestamp()
       });
 
       setSystemNotifications(prev => 
@@ -719,10 +720,6 @@ export default function IndexScreen() {
           <ThemedView style={styles.statCard}>
             <ThemedText style={styles.statValue}>87%</ThemedText>
             <ThemedText style={styles.statLabel}>AI Accuracy</ThemedText>
-          </ThemedView>
-          <ThemedView style={styles.statCard}>
-            <ThemedText style={styles.statValue}>{betCount}</ThemedText>
-            <ThemedText style={styles.statLabel}>Bets Analyzed</ThemedText>
           </ThemedView>
         </ThemedView>
 

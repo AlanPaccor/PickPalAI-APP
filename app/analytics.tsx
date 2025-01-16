@@ -63,26 +63,51 @@ async function callGPT(prompt: string): Promise<string> {
 function parseGPTResponse(response: string): { value: number; explanation: string }[] {
   try {
     console.log('Parsing GPT response:', response);
-    const lines = response.split('\n');
+    const lines = response.split('\n').filter(line => line.trim());
     console.log('Split lines:', lines);
     
     const results: { value: number; explanation: string }[] = [];
+    let currentValue: number | null = null;
+    let currentExplanation: string[] = [];
     
     lines.forEach(line => {
       console.log('Processing line:', line);
-      // Make the regex more flexible to handle variations in format
-      const match = line.match(/Question\s*\d+\s*{(\d+)}:?\s*(.*)/i);
-      if (match) {
-        console.log('Found match:', match);
-        const value = parseInt(match[1], 10);
-        const explanation = match[2]?.trim() || '';
-        results.push({ value, explanation });
+      // Check for lines with Question{X}
+      const questionMatch = line.match(/Question\{(\d+)\}:/);
+      
+      if (questionMatch) {
+        // If we have a previous value and explanation, save it
+        if (currentValue !== null && currentExplanation.length > 0) {
+          results.push({
+            value: currentValue,
+            explanation: currentExplanation.join(' ').trim()
+          });
+          currentExplanation = [];
+        }
+        // Set the new value
+        currentValue = parseInt(questionMatch[1], 10);
+        // Add the rest of the line to explanation
+        const explanationPart = line.split(':')[1];
+        if (explanationPart) {
+          currentExplanation.push(explanationPart.trim());
+        }
+      } else if (currentValue !== null) {
+        // Add this line to the current explanation
+        currentExplanation.push(line.trim());
       }
     });
+    
+    // Don't forget to add the last item
+    if (currentValue !== null && currentExplanation.length > 0) {
+      results.push({
+        value: currentValue,
+        explanation: currentExplanation.join(' ').trim()
+      });
+    }
 
     console.log('Parsed results:', results);
     
-    // If no results were parsed, throw an error
+    // Validate results
     if (results.length === 0) {
       throw new Error('No valid insights found in response');
     }
@@ -90,7 +115,7 @@ function parseGPTResponse(response: string): { value: number; explanation: strin
     return results;
   } catch (error) {
     console.error('Error parsing GPT response:', error);
-    throw error; // Re-throw to handle in fetchAIInsights
+    throw error;
   }
 }
 
@@ -285,70 +310,70 @@ const AnalyticsScreen: React.FC = () => {
       setLoading(true);
       console.log('Fetching insights with params:', params);
 
-      // Define the prompt
-      const prompt = `Analyze this sports betting prediction with specific percentages and explanations:
+      const prompt = `You are a sports betting analysis AI with access to comprehensive historical data and trends. Using your knowledge, analyze this betting prediction:
 
 Game Details:
-- Player: ${player}
-- Bet Type: ${bet}
 - Team: ${params.team || 'N/A'}
 - Opponent: ${params.opponent || 'N/A'}
 - Sport: ${params.sport || 'N/A'}
-- Position: ${params.position || 'N/A'}
 - Game Time: ${params.time || 'N/A'}
-- Popularity: ${params.popularity || 'N/A'}
+- Bet Type: ${bet}
 
-Respond EXACTLY in this format for each question (including the "Question" prefix and curly braces):
-Question1{75}: Detailed explanation here
-Question2{80}: Another detailed explanation
-etc.
+REQUIRED FORMAT: You must respond with exactly 5 lines, each following this format:
+Question{X}: Your detailed explanation
 
-Answer these questions:
-1. How likely is ${player} to exceed their average performance in ${bet}?
-2. What's ${player}'s success rate in matchups against ${params.opponent || 'this opponent'}?
-3. How does ${player} typically perform under similar game conditions?
-4. What's the historical accuracy for this type of bet?
-5. How does ${player}'s recent form impact this bet?
+Where X is a number 0-100 representing probability/confidence, followed by your explanation.
 
-Base your analysis on historical performance, matchup statistics, and current form.
-Each response MUST start with "Question" followed by the number, then the percentage in curly braces, then a colon and explanation.`;
+Analyze these 5 aspects (MUST answer all 5):
+
+Question{X}: Based on ${params.team}'s historical performance and current season stats, analyze their likelihood of winning against ${params.opponent}.
+
+Question{X}: Looking at past matchups between ${params.team} and ${params.opponent}, evaluate their head-to-head record and performance trends.
+
+Question{X}: Consider ${params.team}'s performance in similar game conditions (time slot, home/away, etc.).
+
+Question{X}: Analyze the historical reliability of similar betting odds and outcomes for ${params.team}.
+
+Question{X}: Evaluate ${params.team}'s recent form, including last 5 games performance and any key player statistics.
+
+IMPORTANT: 
+- You MUST provide numerical values in {X} format for each question
+- You MUST provide detailed explanations
+- Use your knowledge to make educated estimates
+- Do NOT mention limitations about data access
+- Respond as if you have access to all historical data`;
 
       const gptResponse = await callGPT(prompt);
       console.log('Raw GPT response:', gptResponse);
 
-      // Add validation for the response
       if (!gptResponse || typeof gptResponse !== 'string') {
         throw new Error('Invalid GPT response format');
       }
 
       const parsedResults = parseGPTResponse(gptResponse);
-      console.log('Successfully parsed results:', parsedResults);
+      
+      if (parsedResults.length === 0) {
+        throw new Error('No valid insights could be parsed from the response');
+      }
 
-      const newInsights: InsightData[] = ANALYSIS_QUESTIONS.map((question, index) => {
-        if (!parsedResults[index]) {
-          console.error(`Missing parsed result for question ${index + 1}`);
-        }
-        
-        return {
-          question,
-          value: parsedResults[index]?.value ?? 50,
-          explanation: parsedResults[index]?.explanation || "Analysis not available",
-          timestamp: Date.now() + (index * 1000),
-        };
-      });
+      const newInsights: InsightData[] = ANALYSIS_QUESTIONS.map((question, index) => ({
+        question,
+        value: parsedResults[index]?.value ?? 50,
+        explanation: parsedResults[index]?.explanation || 
+          "Unable to generate analysis at this time. Please try again.",
+        timestamp: Date.now() + (index * 1000),
+      }));
 
       console.log('Setting insights:', newInsights);
       setInsights(newInsights);
     } catch (error) {
       console.error('Error in fetchAIInsights:', error);
       
-      // Add user-friendly error messages
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      
+      // Create more informative fallback insights
       const mockInsights: InsightData[] = ANALYSIS_QUESTIONS.map((question, index) => ({
         question,
         value: 50,
-        explanation: `Error: ${errorMessage}. Please try again later.`,
+        explanation: "We're experiencing technical difficulties. Please try refreshing the page.",
         timestamp: Date.now() + (index * 1000),
       }));
       

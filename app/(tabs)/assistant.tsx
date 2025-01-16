@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, TextInput, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, Text, View, TextInput, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -229,6 +229,11 @@ export default function AssistantScreen() {
         {isLoading && (
           <View style={styles.loadingContainer}>
             <Text style={styles.loadingText}>{t('analyzing')}</Text>
+            <ActivityIndicator 
+              size="small" 
+              color="#0A84FF" 
+              style={styles.loadingSpinner}
+            />
           </View>
         )}
       </ScrollView>
@@ -262,10 +267,16 @@ const additionalStyles = StyleSheet.create({
   loadingContainer: {
     padding: 10,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   loadingText: {
     color: '#888',
     fontSize: 14,
+    marginRight: 8,
+  },
+  loadingSpinner: {
+    marginLeft: 4,
   },
 });
 

@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet, Platform, ScrollView, Switch, Modal, Alert } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Platform, ScrollView, Switch, Modal, Alert, TextInput } from 'react-native';
 import { auth } from '../config/firebase';
 import { signOut } from 'firebase/auth';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -11,6 +11,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useBetCount } from '../hooks/useBetCount';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
 interface MenuItem {
   icon: MaterialCommunityIconName;
@@ -28,6 +30,11 @@ interface ModalContent {
   content: string;
 }
 
+interface UserStats {
+  totalProfit: number;
+  winRate: number;
+}
+
 export default function AccountScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
@@ -36,6 +43,8 @@ export default function AccountScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalContent, setModalContent] = useState<ModalContent>({ title: '', content: '' });
   const { betCount } = useBetCount();
+  const [isEditingProfit, setIsEditingProfit] = useState(false);
+  const [totalProfit, setTotalProfit] = useState('0');
 
   const handleLogout = async () => {
     Alert.alert(
@@ -80,6 +89,26 @@ export default function AccountScreen() {
   const showModal = (title: string, content: string) => {
     setModalContent({ title, content });
     setModalVisible(true);
+  };
+
+  const handleSaveProfit = async () => {
+    if (!user) return;
+    
+    const profit = parseFloat(totalProfit);
+    if (isNaN(profit)) {
+      Alert.alert('Invalid Input', 'Please enter a valid number');
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        'stats.totalProfit': profit
+      });
+      setIsEditingProfit(false);
+    } catch (error) {
+      console.error('Error updating profit:', error);
+      Alert.alert('Error', 'Failed to update profit. Please try again.');
+    }
   };
 
   const menuItems: MenuSection[] = [
@@ -137,15 +166,28 @@ export default function AccountScreen() {
 
       <ThemedView style={styles.statsContainer}>
         <ThemedView style={styles.statItem}>
-          <ThemedText type="defaultSemiBold">{betCount}</ThemedText>
-          <ThemedText>Bets Analyzed</ThemedText>
-        </ThemedView>
-        <ThemedView style={styles.statItem}>
           <ThemedText type="defaultSemiBold">89%</ThemedText>
           <ThemedText>Win Rate</ThemedText>
         </ThemedView>
         <ThemedView style={styles.statItem}>
-          <ThemedText type="defaultSemiBold">$0</ThemedText>
+          {isEditingProfit ? (
+            <View style={styles.profitEditContainer}>
+              <TextInput
+                style={styles.profitInput}
+                value={totalProfit}
+                onChangeText={setTotalProfit}
+                keyboardType="numeric"
+                placeholder="Enter profit"
+                placeholderTextColor="#666"
+                autoFocus
+                onBlur={handleSaveProfit}
+              />
+            </View>
+          ) : (
+            <TouchableOpacity onPress={() => setIsEditingProfit(true)}>
+              <ThemedText type="defaultSemiBold">${totalProfit}</ThemedText>
+            </TouchableOpacity>
+          )}
           <ThemedText>Total Profit</ThemedText>
         </ThemedView>
       </ThemedView>
@@ -345,5 +387,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 16,
+  },
+  profitEditContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  profitInput: {
+    color: '#1E90FF',
+    fontSize: 24,
+    fontWeight: 'bold',
+    padding: 4,
+    minWidth: 80,
+    textAlign: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1E90FF',
   },
 }); 

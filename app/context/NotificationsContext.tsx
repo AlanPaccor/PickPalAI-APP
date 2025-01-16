@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { db } from '../config/firebase';
-import { collection, query, getDocs } from 'firebase/firestore';
+import { collection, query, getDocs, getDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 
 interface NotificationsContextType {
@@ -15,42 +15,82 @@ const NotificationsContext = createContext<NotificationsContextType>({
 
 export const useNotifications = () => useContext(NotificationsContext);
 
-export function NotificationsProvider({ children }: { children: React.ReactNode }) {
+const getUnreadCount = async (userId: string) => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    const userData = userDoc.data();
+    const dismissedNotifications = userData?.dismissedNotifications || [];
+    const lastCheck = userData?.lastNotificationCheck?.toDate() || new Date(0);
+
+    // Get all notifications
+    const notificationsRef = collection(db, 'notifications');
+    const notificationsSnap = await getDocs(notificationsRef);
+    
+    // Count notifications that:
+    // 1. Haven't been dismissed
+    // 2. Were created after the user's last check
+    const count = notificationsSnap.docs.reduce((acc, doc) => {
+      const notification = doc.data();
+      // Safely handle the date conversion
+      let notificationDate: Date | null = null;
+      
+      if (notification.createdAt) {
+        // Handle both Timestamp and Date objects
+        notificationDate = notification.createdAt.toDate 
+          ? notification.createdAt.toDate() 
+          : new Date(notification.createdAt);
+      }
+      
+      if (
+        !dismissedNotifications.includes(doc.id) && 
+        notificationDate && 
+        notificationDate > lastCheck
+      ) {
+        return acc + 1;
+      }
+      return acc;
+    }, 0);
+
+    return count;
+  } catch (error) {
+    console.error('Error getting unread count:', error);
+    return 0;
+  }
+};
+
+export const NotificationsProvider = ({ children }: { children: React.ReactNode }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const { user } = useAuth();
 
-  const refreshUnreadCount = async () => {
+  const refreshUnreadCount = useCallback(async () => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
+    const count = await getUnreadCount(user.uid);
+    setUnreadCount(count);
+  }, [user]);
+
+  useEffect(() => {
     if (!user) {
       setUnreadCount(0);
       return;
     }
 
-    try {
-      // Get user's dismissed notifications
-      const userDoc = await db.collection('users').doc(user.uid).get();
-      const dismissedNotifications = userDoc.data()?.dismissedNotifications || [];
-
-      // Get all notifications
-      const notificationsSnap = await getDocs(collection(db, 'notifications'));
-      
-      // Count notifications that haven't been dismissed
-      const count = notificationsSnap.docs.filter(
-        doc => !dismissedNotifications.includes(doc.id)
-      ).length;
-
-      setUnreadCount(count);
-    } catch (error) {
-      console.error('Error loading notification count:', error);
-    }
-  };
-
-  useEffect(() => {
     refreshUnreadCount();
-  }, [user]);
+
+    // Set up real-time listener for notifications
+    const notificationsRef = collection(db, 'notifications');
+    const unsubscribe = onSnapshot(notificationsRef, () => {
+      refreshUnreadCount();
+    });
+
+    return () => unsubscribe();
+  }, [user, refreshUnreadCount]);
 
   return (
     <NotificationsContext.Provider value={{ unreadCount, refreshUnreadCount }}>
       {children}
     </NotificationsContext.Provider>
   );
-} 
+}; 
