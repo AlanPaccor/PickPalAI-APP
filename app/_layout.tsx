@@ -6,6 +6,7 @@ import { useAuth } from './context/AuthContext';
 import AuthProvider from './context/AuthContext';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { STRIPE_PUBLISHABLE_KEY } from './config/env';
+import { NotificationsProvider } from './context/NotificationsContext';
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -79,7 +80,9 @@ export default function RootLayout() {
     <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
       <Providers>
         <AuthProvider>
-          <RootLayoutNav />
+          <NotificationsProvider>
+            <RootLayoutNav />
+          </NotificationsProvider>
         </AuthProvider>
       </Providers>
     </StripeProvider>

@@ -2,8 +2,8 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    name: "Oddsly",
-    slug: "Oddsly",
+    name: "BetSenseAI",
+    slug: "BetSenseAI",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",

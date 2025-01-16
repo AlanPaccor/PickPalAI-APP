@@ -20,6 +20,8 @@ import { doc, getDoc, updateDoc, onSnapshot, serverTimestamp, getDocs, query, or
 import { db, auth } from '../config/firebase';
 import { useBetCount } from '../hooks/useBetCount';
 import { useTranslation } from 'react-i18next';
+import { useNotifications } from '../context/NotificationsContext';
+import { SystemNotification } from '../types/SystemNotification';
 
 interface Notification {
   id: string;
@@ -78,17 +80,32 @@ interface DailyInsights {
   createdAt: string;
 }
 
+const interpolateMessage = (message: string, userData: any) => {
+  return message.replace(/\{([^}]+)\}/g, (match, key) => {
+    const value = key.split('.').reduce((obj: any, k: string) => obj?.[k], userData);
+    return value || match;
+  });
+};
+
+const getNotificationTypeColor = (type: string): string => {
+  const colors: { [key: string]: string } = {
+    news: '#1E90FF15',
+    promotions: '#4CAF5015',
+    insights: '#9C27B015',
+    predictions: '#FF980015',
+    expert_picks: '#FF572215',
+    default: '#00000015'
+  };
+  return colors[type] || colors.default;
+};
+
 const NotificationsModal = ({ 
   visible, 
   onClose, 
-  notifications,
-  onNotificationPress,
   loading
 }: { 
   visible: boolean;
   onClose: () => void;
-  notifications: Notification[];
-  onNotificationPress: (id: string) => void;
   loading: boolean;
 }) => {
   const colorScheme = useColorScheme();
@@ -96,6 +113,81 @@ const NotificationsModal = ({
   const translateY = useSharedValue(1000);
   const opacity = useSharedValue(0);
   const [isRendered, setIsRendered] = useState(false);
+  const { user } = useAuth();
+  const [systemNotifications, setSystemNotifications] = useState<SystemNotification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const { refreshUnreadCount } = useNotifications();
+
+  useEffect(() => {
+    const loadSystemNotifications = async () => {
+      if (!user) return;
+
+      setNotificationsLoading(true);
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userData = userDoc.data();
+        const dismissedNotifications = userData?.dismissedNotifications || [];
+        const notificationPreferences = userData?.notificationPreferences || {};
+
+        const notificationsRef = collection(db, 'notifications');
+        const notificationsSnap = await getDocs(notificationsRef);
+        
+        const activeNotifications = notificationsSnap.docs
+          .filter(doc => {
+            const notification = doc.data();
+            const notificationType = notification.type;
+            const isTypeEnabled = notificationPreferences[notificationType] !== false;
+            const isNotDismissed = !dismissedNotifications.includes(doc.id);
+            return isTypeEnabled && isNotDismissed;
+          })
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            message: interpolateMessage(doc.data().message, {
+              user: userData,
+              auth: {
+                user: {
+                  displayName: user.displayName,
+                  email: user.email,
+                }
+              }
+            })
+          })) as SystemNotification[];
+
+        setSystemNotifications(activeNotifications);
+      } catch (error) {
+        console.error('Error loading system notifications:', error);
+      } finally {
+        setNotificationsLoading(false);
+      }
+    };
+
+    if (visible) {
+      loadSystemNotifications();
+    }
+  }, [user, visible]);
+
+  const dismissNotification = async (notificationId: string) => {
+    if (!user) return;
+
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
+      const dismissedNotifications = userDoc.data()?.dismissedNotifications || [];
+
+      await updateDoc(userRef, {
+        dismissedNotifications: [...dismissedNotifications, notificationId]
+      });
+
+      setSystemNotifications(prev => 
+        prev.filter(notification => notification.id !== notificationId)
+      );
+
+      await refreshUnreadCount();
+    } catch (error) {
+      console.error('Error dismissing notification:', error);
+    }
+  };
 
   useEffect(() => {
     if (visible) {
@@ -172,32 +264,67 @@ const NotificationsModal = ({
             contentContainerStyle={styles.notificationListContent}
             showsVerticalScrollIndicator={false}
           >
-            {loading ? (
+            {notificationsLoading ? (
               <ActivityIndicator size="large" color="#1E90FF" style={{ marginTop: 20 }} />
-            ) : notifications.length === 0 ? (
+            ) : systemNotifications.length === 0 ? (
               <ThemedView style={styles.emptyState}>
                 <ThemedText style={styles.emptyStateText}>No notifications yet</ThemedText>
               </ThemedView>
             ) : (
-              notifications.map((notification) => (
-                <TouchableOpacity
-                  key={notification.id}
-                  style={[
-                    styles.notificationItem,
-                    !notification.read && styles.unreadNotification
-                  ]}
-                  onPress={() => onNotificationPress(notification.id)}
-                >
-                  <ThemedText style={styles.notificationTitle}>
-                    {notification.title}
-                  </ThemedText>
+              systemNotifications.map((notification) => (
+                <ThemedView key={notification.id} style={[
+                  styles.notificationItem,
+                  { backgroundColor: getNotificationTypeColor(notification.type) }
+                ]}>
+                  <View style={styles.notificationHeader}>
+                    <View style={styles.notificationMeta}>
+                      <View style={styles.titleRow}>
+                        <ThemedText type="defaultSemiBold" style={styles.notificationTitle}>
+                          {notification.title}
+                        </ThemedText>
+                        <ThemedView style={styles.typeTag}>
+                          <ThemedText style={styles.typeText}>
+                            {notification.type}
+                          </ThemedText>
+                        </ThemedView>
+                      </View>
+                      <ThemedText style={styles.timestamp}>
+                        {new Date(notification.createdAt).toLocaleDateString()}
+                      </ThemedText>
+                    </View>
+                    <TouchableOpacity 
+                      onPress={() => dismissNotification(notification.id)}
+                      style={styles.dismissButton}
+                    >
+                      <MaterialCommunityIcons 
+                        name="close" 
+                        size={20} 
+                        color={theme.tint}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  
                   <ThemedText style={styles.notificationMessage}>
                     {notification.message}
                   </ThemedText>
-                  <ThemedText style={styles.notificationTime}>
-                    {formatTime(notification.time)}
-                  </ThemedText>
-                </TouchableOpacity>
+                  
+                  {notification.link && (
+                    <TouchableOpacity 
+                      onPress={() => {
+                        router.push(notification.link as any);
+                        onClose();
+                      }}
+                      style={styles.linkButton}
+                    >
+                      <ThemedText style={styles.linkText}>View Details</ThemedText>
+                      <MaterialCommunityIcons 
+                        name="arrow-right" 
+                        size={16} 
+                        color="#1E90FF"
+                      />
+                    </TouchableOpacity>
+                  )}
+                </ThemedView>
               ))
             )}
           </ScrollView>
@@ -308,7 +435,7 @@ const RecentWinners = ({ winners }: { winners: RecentWinner[] }) => {
   );
 };
 
-const useNotifications = (userId: string | undefined) => {
+const useLocalNotifications = (userId: string | undefined) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [preferences, setPreferences] = useState<Record<string, boolean>>({});
@@ -391,9 +518,10 @@ export default function IndexScreen() {
   const { betCount } = useBetCount();
   const { t } = useTranslation();
   const [showNotifications, setShowNotifications] = useState(false);
-  const { notifications, loading: notificationsLoading, markAsRead } = useNotifications(user?.uid);
+  const { notifications, loading: notificationsLoading, markAsRead } = useLocalNotifications(user?.uid);
   const [checkingSubscription, setCheckingSubscription] = useState(false);
   const { insights, loading: insightsLoading } = useDailyInsights();
+  const { unreadCount } = useNotifications();
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -571,10 +699,10 @@ export default function IndexScreen() {
               size={24} 
               color="#FFFFFF" 
             />
-            {notifications.some(n => !n.read) && (
+            {unreadCount > 0 && (
               <ThemedView style={styles.notificationBadge}>
                 <ThemedText style={styles.notificationBadgeText}>
-                  {notifications.filter(n => !n.read).length}
+                  {unreadCount}
                 </ThemedText>
               </ThemedView>
             )}
@@ -631,9 +759,7 @@ export default function IndexScreen() {
       <NotificationsModal
         visible={showNotifications}
         onClose={() => setShowNotifications(false)}
-        notifications={notifications}
-        onNotificationPress={handleNotificationPress}
-        loading={notificationsLoading}
+        loading={false}
       />
     </>
   );
@@ -868,19 +994,19 @@ const styles = StyleSheet.create({
   },
   notificationBadge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    right: -6,
+    top: -3,
     backgroundColor: '#FF3B30',
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 4,
   },
   notificationBadgeText: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 'bold',
   },
   modalOverlay: {
@@ -895,7 +1021,7 @@ const styles = StyleSheet.create({
     maxHeight: '90%',
   },
   notificationModal: {
-    backgroundColor: '#000010',
+    backgroundColor: '#000015',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     height: '100%',
@@ -915,11 +1041,8 @@ const styles = StyleSheet.create({
   notificationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    paddingTop: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#FFFFFF10',
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
   closeButton: {
     padding: 8,
@@ -931,10 +1054,9 @@ const styles = StyleSheet.create({
   notificationItem: {
     padding: 16,
     borderRadius: 12,
-    marginBottom: 8,
-    backgroundColor: '#FFFFFF05',
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#FFFFFF10',
+    borderColor: '#FFFFFF15',
   },
   unreadNotification: {
     backgroundColor: '#FFFFFF08',
@@ -942,13 +1064,15 @@ const styles = StyleSheet.create({
   },
   notificationTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontWeight: '600',
+    flex: 1,
+    marginRight: 8,
   },
   notificationMessage: {
     fontSize: 14,
-    marginBottom: 8,
-    opacity: 0.8,
+    lineHeight: 20,
+    opacity: 0.9,
+    marginBottom: 12,
   },
   notificationTime: {
     fontSize: 12,
@@ -963,5 +1087,52 @@ const styles = StyleSheet.create({
   },
   notificationListContent: {
     paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+  },
+  notificationMeta: {
+    flex: 1,
+    marginRight: 12,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  typeTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF10',
+  },
+  typeText: {
+    fontSize: 12,
+    color: '#FFFFFF90',
+    textTransform: 'capitalize',
+  },
+  timestamp: {
+    fontSize: 12,
+    opacity: 0.6,
+    marginBottom: 8,
+  },
+  dismissButton: {
+    padding: 4,
+    backgroundColor: '#FFFFFF10',
+    borderRadius: 12,
+  },
+  linkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E90FF20',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  linkText: {
+    color: '#1E90FF',
+    fontSize: 14,
+    marginRight: 4,
+    fontWeight: '600',
   },
 });

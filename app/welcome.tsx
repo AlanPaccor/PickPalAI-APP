@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { ThemedText } from './components/ThemedText';
 import { ThemedView } from './components/ThemedView';
 import { router } from 'expo-router';
@@ -18,44 +18,54 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <Animated.View style={styles.headerSection}>
-        <MaterialCommunityIcons name="chart-line" size={80} color="#0A84FF" />
-        <ThemedText type="title" style={styles.title}>
-          {t('Your Sports Betting Assistant')}
-        </ThemedText>
-      </Animated.View>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+      <ScrollView 
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <ThemedView style={styles.container}>
+          <Animated.View style={styles.headerSection}>
+            <MaterialCommunityIcons name="chart-line" size={80} color="#0A84FF" />
+            <ThemedText type="title" style={styles.title}>
+              {t('Your Sports Betting Assistant')}
+            </ThemedText>
+          </Animated.View>
 
-      <Animated.View style={styles.featuresSection}>
-        <FeatureItem 
-          icon="chart-bell-curve" 
-          text={t('AI-Powered Predictions & Analysis')}
-        />
-        <FeatureItem 
-          icon="chart-timeline-variant" 
-          text={t('Track Your Betting Performance')}
-        />
-        <FeatureItem 
-          icon="robot-outline" 
-          text={t('24/7 AI Betting Assistant')}
-        />
-        <FeatureItem 
-          icon="bell-outline" 
-          text={t('Real-time Betting Alerts')}
-        />
-      </Animated.View>
+          <Animated.View style={styles.featuresSection}>
+            <FeatureItem 
+              icon="chart-bell-curve" 
+              text={t('AI-Powered Predictions & Analysis')}
+            />
+            <FeatureItem 
+              icon="chart-timeline-variant" 
+              text={t('Track Your Betting Performance')}
+            />
+            <FeatureItem 
+              icon="robot-outline" 
+              text={t('24/7 AI Betting Assistant')}
+            />
+            <FeatureItem 
+              icon="bell-outline" 
+              text={t('Real-time Betting Alerts')}
+            />
+          </Animated.View>
 
-      <Animated.View style={[styles.buttonSection, { marginBottom: insets.bottom }]}>
-        <TouchableOpacity 
-          style={styles.registerButton}
-          onPress={handleGetStarted}
-        >
-          <ThemedText style={styles.buttonText}>
-            {t('Get Started Free')}
-          </ThemedText>
-        </TouchableOpacity>
-      </Animated.View>
-    </ThemedView>
+          <Animated.View style={[styles.buttonSection, { marginBottom: insets.bottom }]}>
+            <TouchableOpacity 
+              style={styles.registerButton}
+              onPress={handleGetStarted}
+            >
+              <ThemedText style={styles.buttonText}>
+                {t('Get Started Free')}
+              </ThemedText>
+            </TouchableOpacity>
+          </Animated.View>
+        </ThemedView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

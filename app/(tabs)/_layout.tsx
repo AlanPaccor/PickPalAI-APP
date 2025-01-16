@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { View, StyleSheet, Pressable, useColorScheme, GestureResponderEvent } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useAuth } from '../../app/context/AuthContext';
@@ -7,6 +7,8 @@ import { Redirect } from 'expo-router';
 import Colors from '@/constants/Colors';
 import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
+import { useNotifications } from '../context/NotificationsContext';
+import { ThemedText } from '@/components/ThemedText';
 
 // Add type for the AssistantIcon props
 interface AssistantIconProps {
@@ -44,12 +46,26 @@ function AssistantIcon({ color, focused }: AssistantIconProps) {
   );
 }
 
+function NotificationIcon({ color, size, unreadCount }: { color: string, size: number, unreadCount: number }) {
+  return (
+    <View style={{ width: size, height: size }}>
+      <MaterialCommunityIcons name="bell" size={size} color={color} />
+      {unreadCount > 0 && (
+        <View style={styles.badge}>
+          <ThemedText style={styles.badgeText}>{unreadCount}</ThemedText>
+        </View>
+      )}
+    </View>
+  );
+}
+
 // Update the TabBarButton component to use BottomTabBarButtonProps
 export default function TabLayout() {
   const { user, isLoading } = useAuth();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const { t } = useTranslation();
+  const { unreadCount } = useNotifications();
 
   if (isLoading) return null;
   if (!user) return <Redirect href="/auth/login" />;
@@ -117,6 +133,15 @@ export default function TabLayout() {
             tabBarIcon: ({ color }) => <MaterialIcons name="person" size={24} color={color} />,
           }}
         />
+        <Tabs.Screen
+          name="account/notifications"
+          options={{
+            title: 'Notifications',
+            tabBarIcon: ({ color, size }) => (
+              <NotificationIcon color={color} size={size} unreadCount={unreadCount} />
+            ),
+          }}
+        />
       </Tabs>
     </View>
   );
@@ -139,5 +164,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  badge: {
+    position: 'absolute',
+    right: -6,
+    top: -3,
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
