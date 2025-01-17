@@ -1,38 +1,32 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Dimensions, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
+import { HowItWorks } from '../(slideshow)/how-it-works';
+import { AIAnalytics } from '../(slideshow)/ai-analytics';
+import { Compatibility } from '../(slideshow)/compatibility';
+import { StartFree } from '../(slideshow)/start-free';
 
-const { width } = Dimensions.get('window');
-
-const slides: Array<{
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-  title: string;
-  description: string;
-}> = [
+const slides = [
   {
-    icon: 'chart-line',
-    title: 'Smart Predictions',
-    description: 'Get AI-powered insights and predictions for your sports bets',
+    component: HowItWorks,
+    title: 'How It Works',
   },
   {
-    icon: 'trending-up',
-    title: 'Track Performance',
-    description: 'Monitor your betting history and improve your success rate',
+    component: AIAnalytics,
+    title: 'AI-Driven Analytics',
   },
   {
-    icon: 'robot',
-    title: 'AI Assistant',
-    description: '24/7 AI betting assistant to help with your betting strategy',
+    component: Compatibility,
+    title: 'Works Everywhere',
   },
   {
-    icon: 'bell',
-    title: 'Stay Updated',
-    description: 'Receive real-time alerts for the best betting opportunities',
+    component: StartFree,
+    title: 'Start Free Today',
   },
 ];
 
@@ -52,6 +46,8 @@ export function OnboardingSlideshow() {
     router.push('/auth/register');
   };
 
+  const CurrentSlideComponent = slides[currentSlide].component;
+
   return (
     <ThemedView style={styles.container}>
       <TouchableOpacity style={styles.skipButton} onPress={skipToRegister}>
@@ -61,19 +57,9 @@ export function OnboardingSlideshow() {
       <Animated.View 
         entering={FadeIn}
         key={currentSlide}
-        style={styles.slideContent}
+        style={styles.slideContainer}
       >
-        <MaterialCommunityIcons
-          name={slides[currentSlide].icon}
-          size={80}
-          color="#0A84FF"
-        />
-        <ThemedText type="title" style={styles.title}>
-          {t(slides[currentSlide].title)}
-        </ThemedText>
-        <ThemedText style={styles.description}>
-          {t(slides[currentSlide].description)}
-        </ThemedText>
+        <CurrentSlideComponent />
       </Animated.View>
 
       <View style={styles.footer}>
@@ -104,62 +90,61 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000010',
   },
+  slideContainer: {
+    flex: 1,
+  },
   skipButton: {
     position: 'absolute',
-    top: 50,
+    top: 60,
     right: 20,
     zIndex: 1,
+    padding: 8,
   },
   skipText: {
     color: '#0A84FF',
     fontSize: 16,
-  },
-  slideContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 40,
-    marginBottom: 20,
-  },
-  description: {
-    fontSize: 18,
-    textAlign: 'center',
-    opacity: 0.8,
+    fontWeight: '600',
   },
   footer: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 50,
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 30,
   },
   paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FFFFFF40',
-    marginHorizontal: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FFFFFF20',
+    marginHorizontal: 6,
   },
   paginationDotActive: {
     backgroundColor: '#0A84FF',
+    transform: [{scale: 1.2}],
   },
   nextButton: {
-    backgroundColor: '#0A84FF',
+    backgroundColor: '#000010',
+    borderColor: '#1E90FF',
+    borderWidth: 1,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#0A84FF',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   nextButtonText: {
     color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 16,
+    fontWeight: '700',
+    fontSize: 18,
+    letterSpacing: 0.5,
   },
 }); 

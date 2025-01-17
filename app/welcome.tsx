@@ -2,12 +2,10 @@ import { StyleSheet, TouchableOpacity, View, KeyboardAvoidingView, Platform, Scr
 import { ThemedText } from './components/ThemedText';
 import { ThemedView } from './components/ThemedView';
 import { router } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import type { MaterialCommunityIcons as IconType } from '@expo/vector-icons';
-import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { OnboardingSlideshow } from './components/OnboardingSlideshow';
+import { Video, ResizeMode } from 'expo-av';
 
 export default function WelcomeScreen() {
   const { t } = useTranslation();
@@ -27,39 +25,37 @@ export default function WelcomeScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <ThemedView style={styles.container}>
-          <Animated.View style={styles.headerSection}>
-            <MaterialCommunityIcons name="chart-line" size={80} color="#0A84FF" />
-            <ThemedText type="title" style={styles.title}>
-              {t('Your Sports Betting Assistant')}
-            </ThemedText>
+          <Animated.View 
+            entering={FadeIn.duration(1000).delay(200)}
+            style={styles.headerSection}
+          >
+            <Video
+              source={require('../assets/app/landingIcon.mp4')}
+              style={styles.video}
+              shouldPlay
+              isLooping
+              resizeMode={ResizeMode.CONTAIN}
+            />
+            <View style={styles.titleWrapper}>
+              <ThemedText type="title" style={styles.title}>
+                {t('BetSense')} <ThemedText type="title" style={styles.aiText}>AI</ThemedText>
+              </ThemedText>
+              <ThemedText style={styles.subtitle}>
+                {t('Your Intelligent Betting Companion')}
+              </ThemedText>
+            </View>
           </Animated.View>
 
-          <Animated.View style={styles.featuresSection}>
-            <FeatureItem 
-              icon="chart-bell-curve" 
-              text={t('AI-Powered Predictions & Analysis')}
-            />
-            <FeatureItem 
-              icon="chart-timeline-variant" 
-              text={t('Track Your Betting Performance')}
-            />
-            <FeatureItem 
-              icon="robot-outline" 
-              text={t('24/7 AI Betting Assistant')}
-            />
-            <FeatureItem 
-              icon="bell-outline" 
-              text={t('Real-time Betting Alerts')}
-            />
-          </Animated.View>
-
-          <Animated.View style={[styles.buttonSection, { marginBottom: insets.bottom }]}>
+          <Animated.View 
+            entering={FadeIn.duration(1000).delay(400)}
+            style={[styles.buttonSection, { marginBottom: insets.bottom }]}
+          >
             <TouchableOpacity 
               style={styles.registerButton}
               onPress={handleGetStarted}
             >
               <ThemedText style={styles.buttonText}>
-                {t('Get Started Free')}
+                {t('Get Started')}
               </ThemedText>
             </TouchableOpacity>
           </Animated.View>
@@ -69,81 +65,76 @@ export default function WelcomeScreen() {
   );
 }
 
-function FeatureItem({ icon, text }: { 
-  icon: keyof typeof IconType.glyphMap, 
-  text: string 
-}) {
-  return (
-    <View style={styles.featureItem}>
-      <MaterialCommunityIcons 
-        name={icon} 
-        size={24} 
-        color="#0A84FF" 
-      />
-      <ThemedText style={styles.featureText}>
-        {text}
-      </ThemedText>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000010',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   headerSection: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 20,
-    paddingTop: 140,
+    gap: 32,
+    paddingTop: 150,
+  },
+  video: {
+    width: 200,
+    height: 200,
+    backgroundColor: '#000010',
+  },
+  titleWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    fontSize: 44,
+    fontWeight: '700',
     textAlign: 'center',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(30, 144, 255, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 10,
   },
-  featuresSection: {
-    justifyContent: 'center',
-    gap: 20,
-    marginTop: 30,
+  aiText: {
+    color: '#1E90FF',
+    fontWeight: '800',
+    textShadowColor: '#1E90FF',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 25,
   },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    backgroundColor: '#000010',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FFFFFF20',
-  },
-  featureText: {
-    fontSize: 16,
-    opacity: 0.9,
+  subtitle: {
+    fontSize: 17,
+    color: '#FFFFFF80',
+    textAlign: 'center',
+    marginTop: 4,
   },
   buttonSection: {
-    gap: 16,
-    marginTop: 'auto',
-    paddingVertical: 20,
+    marginTop: 60,
+    alignItems: 'center',
+    backgroundColor: '#000010',
   },
   registerButton: {
-    backgroundColor: '#0A84FF',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: '#000010',
+    color: '#1E90FF',
+    borderColor: '#1E90FF',
+    borderWidth: 1,
+    padding: 20,
+    borderRadius: 16,
     alignItems: 'center',
+    shadowColor: '#1E90FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+    width: '100%',
+    maxWidth: 400,
   },
   buttonText: {
     color: '#FFFFFF',
     fontWeight: '600',
-    fontSize: 16,
-  },
-  loginButton: {
-    alignItems: 'center',
-  },
-  loginText: {
-    color: '#0A84FF',
-    fontSize: 16,
+    fontSize: 18,
+    backgroundColor: '#000010',
   },
 }); 

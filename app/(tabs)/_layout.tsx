@@ -1,11 +1,11 @@
 import { Tabs } from 'expo-router';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { View, StyleSheet, Pressable, useColorScheme, GestureResponderEvent } from 'react-native';
+import { View, StyleSheet, StatusBar } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useAuth } from '../../app/context/AuthContext';
 import { Redirect } from 'expo-router';
 import Colors from '@/constants/Colors';
-import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import { useColorScheme } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useNotifications } from '../context/NotificationsContext';
 import { ThemedText } from '@/components/ThemedText';
@@ -59,7 +59,6 @@ function NotificationIcon({ color, size, unreadCount }: { color: string, size: n
   );
 }
 
-// Update the TabBarButton component to use BottomTabBarButtonProps
 export default function TabLayout() {
   const { user, isLoading } = useAuth();
   const colorScheme = useColorScheme();
@@ -71,7 +70,12 @@ export default function TabLayout() {
   if (!user) return <Redirect href="/auth/login" />;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
+    <View style={{ 
+      flex: 1, 
+      backgroundColor: '#0A0A0A',
+      height: '100%',
+    }}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
       <Tabs 
         screenOptions={{
           headerShown: false,
@@ -89,7 +93,6 @@ export default function TabLayout() {
             shadowRadius: 8,
             elevation: 20,
             borderTopColor: '#FFFFFF10',
-            borderTopWidth: 0,
           },
           tabBarActiveTintColor: theme.tint,
           tabBarInactiveTintColor: theme.tabIconDefault,
@@ -183,5 +186,22 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  container: {
+    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  video: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });
