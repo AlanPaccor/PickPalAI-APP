@@ -404,7 +404,9 @@ const RecentWinners = ({ winners }: { winners: RecentWinner[] }) => {
 
   return (
     <ThemedView style={styles.section}>
-      <ThemedText style={styles.sectionTitle}>Recent Winners 🏆</ThemedText>
+      <ThemedText style={styles.sectionTitle}>
+        <MaterialCommunityIcons name="trophy" size={18} color="white" /> Recent Winners
+      </ThemedText>
       <ThemedView style={styles.marqueeContainer}>
         <Animated.View 
           style={[styles.marqueeContent, animatedStyle]}
@@ -687,8 +689,7 @@ export default function IndexScreen() {
         {/* Header */}
         <ThemedView style={styles.header}>
           <ThemedView style={styles.logoContainer}>
-            <MaterialCommunityIcons name="trophy" size={32} color="#1E90FF" />
-            <ThemedText style={styles.logoText}>BetSenseAI</ThemedText>
+            {/* Remove the BetSenseAI title and trophy icon */}
           </ThemedView>
           
           <TouchableOpacity 
@@ -711,9 +712,9 @@ export default function IndexScreen() {
         </ThemedView>
 
         {/* Profile Section */}
-        <ThemedView style={styles.profileSection}>
-          <ThemedText style={styles.profileName}>Welcome!</ThemedText>
-        </ThemedView>
+        <ThemedView style={styles.logoContainer}>
+            <ThemedText style={styles.logoText}>BetSenseAI</ThemedText>
+          </ThemedView>
 
         {/* Quick Stats Section */}
         <ThemedView style={styles.statsContainer}>
@@ -730,7 +731,9 @@ export default function IndexScreen() {
 
         {/* Today's Hot Picks */}
         <ThemedView style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>🔥 Today's Hot Picks</ThemedText>
+          <ThemedText style={styles.sectionTitle}>
+            <MaterialCommunityIcons name="fire" size={18} color="white" /> Today's Hot Picks
+          </ThemedText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.picksScroll}>
             {insights?.hotPicks.map((pick, index) => (
               <ThemedView key={index} style={styles.pickCard}>
@@ -770,7 +773,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 100 : StatusBar.currentHeight || 0,
     paddingBottom: 16,
@@ -786,6 +789,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
+    marginLeft: 16,
   },
   profileSection: {
     padding: 16,

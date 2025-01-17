@@ -31,8 +31,8 @@ export default function FAQScreen() {
     },
     {
       category: "Account & Billing",
-      question: "How do I change my subscription plan?",
-      answer: "You can change your subscription plan in the Billing & Payments section of your account settings. Select 'Change Plan' to view available options and make changes to your subscription."
+      question: "How do I end my subscription plan?",
+      answer: "You can end your subscription plan in the Billing & Payments section of your account settings. Select 'End Subscription' to end your subscription."
     },
     {
       category: "Account & Billing",

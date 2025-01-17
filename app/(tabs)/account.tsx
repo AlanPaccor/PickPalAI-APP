@@ -160,7 +160,7 @@ export default function AccountScreen() {
       contentContainerStyle={styles.contentContainer}
     >
       <ThemedView style={styles.profileSection}>
-        <ThemedText type="title">{user?.email || 'User'}</ThemedText>
+        <ThemedText type="title" style={styles.boldText}>{user?.email || 'User'}</ThemedText>
         <ThemedText style={styles.joinDate}>Member since {new Date().getFullYear()}</ThemedText>
       </ThemedView>
 
@@ -184,17 +184,26 @@ export default function AccountScreen() {
               />
             </View>
           ) : (
-            <TouchableOpacity onPress={() => setIsEditingProfit(true)}>
+            <TouchableOpacity 
+              onPress={() => setIsEditingProfit(true)}
+              style={styles.profitTouchable}
+            >
               <ThemedText type="defaultSemiBold">${totalProfit}</ThemedText>
+              <MaterialCommunityIcons 
+                name="pencil" 
+                size={16} 
+                color={theme.tint}
+                style={styles.editIcon}
+              />
             </TouchableOpacity>
           )}
-          <ThemedText>Total Profit</ThemedText>
+          <ThemedText style={styles.editableText}>Total Profit (tap to edit)</ThemedText>
         </ThemedView>
       </ThemedView>
 
       {menuItems.map((section, index) => (
         <ThemedView key={index} style={[styles.section, styles.sectionContainer]}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
+          <ThemedText type="subtitle" style={[styles.sectionTitle, styles.boldText]}>
             {section.title}
           </ThemedText>
           
@@ -402,5 +411,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#1E90FF',
+  },
+  boldText: {
+    fontWeight: 'bold',
+  },
+  profitTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  editIcon: {
+    opacity: 0.7,
+  },
+  editableText: {
+    fontSize: 12,
+    opacity: 0.7,
   },
 }); 

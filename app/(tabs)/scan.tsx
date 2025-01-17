@@ -207,9 +207,9 @@ export default function ScanScreen() {
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
-        <ThemedText style={styles.title}>Scan Betting Slip</ThemedText>
+        <ThemedText style={styles.title}>{t('Scan Betting Slip')}</ThemedText>
         <ThemedText style={styles.subtitle}>
-          Upload your betting slip to get instant analysis and predictions
+          {t('Take a photo or upload your betting slip for instant analysis')}
         </ThemedText>
       </ThemedView>
 
@@ -227,19 +227,19 @@ export default function ScanScreen() {
                 <ThemedView style={styles.processingOverlay}>
                   <MaterialIcons name="hourglass-top" size={48} color="#1E90FF" />
                   <ThemedText style={styles.processingText}>
-                    Analyzing your betting slip...
+                    {t('Analyzing your betting slip...')}
                   </ThemedText>
                 </ThemedView>
               )}
             </>
           ) : (
             <ThemedView style={styles.uploadPlaceholder}>
-              <MaterialIcons name="cloud-upload" size={48} color="#1E90FF" />
+              <MaterialIcons name="add-a-photo" size={48} color="#1E90FF" />
               <ThemedText style={styles.uploadText}>
-                Upload Betting Slip
+                {t('Tap to Upload')}
               </ThemedText>
               <ThemedText style={styles.supportedFormats}>
-                Supports JPG, PNG, and HEIC formats
+                {t('Take a photo or choose from gallery')}
               </ThemedText>
             </ThemedView>
           )}
@@ -247,31 +247,31 @@ export default function ScanScreen() {
       </TouchableOpacity>
 
       <ThemedView style={styles.instructions}>
-        <ThemedText style={styles.instructionsTitle}>How It Works</ThemedText>
+        <ThemedText style={styles.instructionsTitle}>{t('Quick Guide')}</ThemedText>
         <ThemedView style={styles.step}>
           <ThemedView style={styles.stepNumber}>
-            <ThemedText style={styles.stepNumberText}>1</ThemedText>
+            <MaterialIcons name="photo-camera" size={20} color="#FFFFFF" />
           </ThemedView>
           <ThemedText style={styles.stepText}>
-            Take a clear photo of your betting slip or select one from your gallery
+            {t('Take a clear, screenshot of your entire betting slip')}
           </ThemedText>
         </ThemedView>
 
         <ThemedView style={styles.step}>
           <ThemedView style={styles.stepNumber}>
-            <ThemedText style={styles.stepNumberText}>2</ThemedText>
+            <MaterialIcons name="auto-awesome" size={20} color="#FFFFFF" />
           </ThemedView>
           <ThemedText style={styles.stepText}>
-            Our AI will analyze the odds and betting details automatically
+            {t('Our AI will scan and analyze the betting details')}
           </ThemedText>
         </ThemedView>
 
         <ThemedView style={styles.step}>
           <ThemedView style={styles.stepNumber}>
-            <ThemedText style={styles.stepNumberText}>3</ThemedText>
+            <MaterialIcons name="insights" size={20} color="#FFFFFF" />
           </ThemedView>
           <ThemedText style={styles.stepText}>
-            Get instant predictions and expert analysis for your bets
+            {t('Choose between AI chat analysis or statistical insights')}
           </ThemedText>
         </ThemedView>
       </ThemedView>
@@ -310,28 +310,29 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#1E90FF30',
+    borderColor: '#1E90FF20',
     borderStyle: 'dashed',
     overflow: 'hidden',
-    backgroundColor: '#000010',
+    backgroundColor: '#00001A',
   },
   uploadPlaceholder: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
+    gap: 16,
     padding: 20,
-    backgroundColor: '#000010',
+    backgroundColor: '#00001A',
   },
   uploadText: {
-    fontSize: 16,
+    fontSize: 20,
     color: '#1E90FF',
     fontWeight: '600',
   },
   supportedFormats: {
-    fontSize: 12,
-    opacity: 0.5,
+    fontSize: 14,
+    opacity: 0.7,
     color: '#FFFFFF',
+    textAlign: 'center',
   },
   previewImage: {
     width: '100%',
@@ -339,42 +340,38 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   instructions: {
-    padding: 20,
+    padding: 24,
     borderRadius: 16,
-    gap: 16,
+    gap: 20,
     borderWidth: 1,
-    borderColor: '#ffffff20',
+    borderColor: '#ffffff15',
     backgroundColor: '#000010',
   },
   instructionsTitle: {
     fontSize: 20,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 8,
     color: '#FFFFFF',
   },
   step: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 16,
   },
   stepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#000070',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1E90FF',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  stepNumberText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 16,
   },
   stepText: {
     flex: 1,
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 24,
     color: '#FFFFFF',
+    opacity: 0.9,
   },
   processingOverlay: {
     position: 'absolute',

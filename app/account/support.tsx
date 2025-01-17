@@ -28,19 +28,19 @@ export default function SupportScreen() {
       icon: 'email-outline',
       title: 'Contact Support',
       description: 'Get help from our support team',
-      action: () => Linking.openURL('mailto:support@example.com'),
+      action: () => Linking.openURL('mailto:support@BetSenseAI.com'),
     },
     {
       icon: 'bug-outline',
       title: 'Report an Issue',
       description: "Let us know if something isn't working",
-      action: () => Linking.openURL('mailto:bugs@example.com'),
+      action: () => Linking.openURL('mailto:bugs@BetSenseAI.com'),
     },
     {
       icon: 'lightbulb-outline',
       title: 'Feature Request',
       description: 'Suggest new features or improvements',
-      action: () => Linking.openURL('mailto:feedback@example.com'),
+      action: () => Linking.openURL('mailto:feedback@BetSenseAI.com'),
     },
     {
       icon: 'star-outline',
@@ -117,7 +117,6 @@ export default function SupportScreen() {
         <ThemedText style={styles.supportHoursTitle}>Support Hours</ThemedText>
         <ThemedText style={styles.supportHoursText}>
           24/7 Email Support{'\n'}
-          Live Chat: 9AM - 5PM EST
         </ThemedText>
       </ThemedView>
     </ScrollView>
