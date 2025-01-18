@@ -2,8 +2,8 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    name: "BetSenseAI",
-    slug: "BetSenseAI",
+    name: "PickPalAI",
+    slug: "PickPalAI",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/app/icon.png",
@@ -27,7 +27,7 @@ export default {
         backgroundColor: "#1A1A1A"
       },
       userInterfaceStyle: "dark",
-      package: "com.betsenseai.app",
+      package: "com.pickpalai.app",
       compileSdkVersion: 34,
       targetSdkVersion: 34,
       buildToolsVersion: "34.0.0"

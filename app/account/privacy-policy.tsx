@@ -58,7 +58,7 @@ Contact support to exercise these rights.`
     },
     {
       title: "Contact Us",
-      content: "For privacy-related questions or concerns, contact our support team at support@BetSenseAI.com"
+      content: "For privacy-related questions or concerns, contact our support team at support@pickpalai.com"
     }
   ];
 

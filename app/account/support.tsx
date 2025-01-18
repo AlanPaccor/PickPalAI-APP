@@ -28,19 +28,19 @@ export default function SupportScreen() {
       icon: 'email-outline',
       title: 'Contact Support',
       description: 'Get help from our support team',
-      action: () => Linking.openURL('mailto:support@BetSenseAI.com'),
+      action: () => Linking.openURL('mailto:support@pickpalai.com'),
     },
     {
       icon: 'bug-outline',
       title: 'Report an Issue',
       description: "Let us know if something isn't working",
-      action: () => Linking.openURL('mailto:bugs@BetSenseAI.com'),
+      action: () => Linking.openURL('mailto:support@pickpalai.com'),
     },
     {
       icon: 'lightbulb-outline',
       title: 'Feature Request',
       description: 'Suggest new features or improvements',
-      action: () => Linking.openURL('mailto:feedback@BetSenseAI.com'),
+      action: () => Linking.openURL('mailto:support@pickpalai.com'),
     },
     {
       icon: 'star-outline',

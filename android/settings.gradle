@@ -21,7 +21,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
   }
 }
 
-rootProject.name = 'BetSenseAI'
+rootProject.name = 'PickPalAI'
 
 dependencyResolutionManagement {
   versionCatalogs {

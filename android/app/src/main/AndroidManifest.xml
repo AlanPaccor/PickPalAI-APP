@@ -27,8 +27,8 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="myapp"/>
-        <data android:scheme="com.betsenseai.app"/>
+        <data android:scheme="com.pickpalai.app"/>
+        <data android:scheme="com.pickpalai.app"/>
       </intent-filter>
     </activity>
   </application>

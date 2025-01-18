@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { useColorScheme, StatusBar, View } from 'react-native';
+import { useColorScheme, StatusBar, View, Platform } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import Colors from '@/constants/Colors';
 import Providers from './providers';
@@ -8,6 +8,16 @@ import AuthProvider from './context/AuthContext';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { STRIPE_PUBLISHABLE_KEY } from './config/env';
 import { NotificationsProvider } from './context/NotificationsContext';
+import * as Notifications from 'expo-notifications';
+import { useEffect } from 'react';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -20,14 +30,18 @@ function RootLayoutNav() {
     console.log('Still loading...');
     return (
       <View style={{ 
-        flex: 1, 
-        backgroundColor: '#000',
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
+        backgroundColor: '#000',
       }}>
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor="transparent"
+          translucent
+        />
         <Video
           source={require('../assets/app/splash.mp4')}
           rate={1.0}
@@ -37,17 +51,15 @@ function RootLayoutNav() {
           shouldPlay
           isLooping={false}
           style={{ 
-            width: '100%', 
-            height: '100%',
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
+            zIndex: 1
           }}
           onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
             if ('isLoaded' in status && status.isLoaded && status.didJustFinish) {
-              // Video has finished playing
               console.log('Splash video finished');
             }
           }}
@@ -74,7 +86,12 @@ function RootLayoutNav() {
             animation: 'fade',
           }}
         >
-          <Stack.Screen name="index" options={{ href: null }} />
+          <Stack.Screen 
+            name="index" 
+            options={{ 
+              headerShown: false 
+            }} 
+          />
           <Stack.Screen name="welcome" />
           <Stack.Screen name="auth" />
         </Stack>
@@ -112,6 +129,43 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    registerForPushNotificationsAsync();
+  }, []);
+
+  async function registerForPushNotificationsAsync() {
+    let token;
+
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
+
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    
+    if (finalStatus !== 'granted') {
+      alert('Failed to get push token for push notification!');
+      return;
+    }
+
+    token = (await Notifications.getExpoPushTokenAsync({
+      projectId: 'your-project-id', // Get this from your project on expo.dev
+    })).data;
+
+    console.log(token);
+    // Here you would typically send this token to your backend
+  }
+
   return (
     <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
       <Providers>

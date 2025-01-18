@@ -196,6 +196,7 @@ const AnalyticsScreen: React.FC = () => {
     subtitle: {
       fontSize: 16,
       color: '#1E90FF',
+      backgroundColor: '#000010',
     },
     chartContainer: {
       padding: 16,

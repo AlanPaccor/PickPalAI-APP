@@ -6,6 +6,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Video, ResizeMode } from 'expo-av';
+import * as Notifications from 'expo-notifications';
 
 export default function WelcomeScreen() {
   const { t } = useTranslation();
@@ -13,6 +14,17 @@ export default function WelcomeScreen() {
 
   const handleGetStarted = () => {
     router.push('/(slideshow)');
+  };
+
+  const schedulePushNotification = async () => {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Welcome! 👋",
+        body: "Thanks for using our app!",
+        data: { data: 'goes here' },
+      },
+      trigger: { seconds: 2 },
+    });
   };
 
   return (
@@ -26,7 +38,6 @@ export default function WelcomeScreen() {
       >
         <ThemedView style={styles.container}>
           <Animated.View 
-            entering={FadeIn.duration(1000).delay(200)}
             style={styles.headerSection}
           >
             <Video
@@ -38,7 +49,7 @@ export default function WelcomeScreen() {
             />
             <View style={styles.titleWrapper}>
               <ThemedText type="title" style={styles.title}>
-                {t('BetSense')} <ThemedText type="title" style={styles.aiText}>AI</ThemedText>
+                {t('PickPal')} <ThemedText type="title" style={styles.aiText}>AI</ThemedText>
               </ThemedText>
               <ThemedText style={styles.subtitle}>
                 {t('Your Intelligent Betting Companion')}
@@ -114,11 +125,12 @@ const styles = StyleSheet.create({
     marginTop: 60,
     alignItems: 'center',
     backgroundColor: '#000010',
+    color: '#000010',
   },
   registerButton: {
-    backgroundColor: '#000010',
-    color: '#1E90FF',
+    color: '#000010',
     borderColor: '#1E90FF',
+    backgroundColor: '#000010',
     borderWidth: 1,
     padding: 20,
     borderRadius: 16,
@@ -135,6 +147,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 18,
-    backgroundColor: '#000010',
   },
 }); 

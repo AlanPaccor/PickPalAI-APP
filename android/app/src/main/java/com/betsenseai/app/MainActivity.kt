@@ -1,4 +1,4 @@
-package com.betsenseai.app
+package com.pickpalai.app
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

@@ -689,7 +689,7 @@ export default function IndexScreen() {
         {/* Header */}
         <ThemedView style={styles.header}>
           <ThemedView style={styles.logoContainer}>
-            {/* Remove the BetSenseAI title and trophy icon */}
+            {/* Remove the PickPalAI title and trophy icon */}
           </ThemedView>
           
           <TouchableOpacity 
@@ -713,7 +713,7 @@ export default function IndexScreen() {
 
         {/* Profile Section */}
         <ThemedView style={styles.logoContainer}>
-            <ThemedText style={styles.logoText}>BetSenseAI</ThemedText>
+            <ThemedText style={styles.logoText}>PickPalAI</ThemedText>
           </ThemedView>
 
         {/* Quick Stats Section */}
