@@ -150,13 +150,16 @@ const saveToCache = async <T>(cacheKey: string, data: T): Promise<void> => {
 };
 
 const transformOddsData = (oddsData: OddsApiResponse[], currentFilter: string): Game[] => {
-  return oddsData.map(item => {
+  return oddsData.map((item, index) => {
     const bookmaker = item.bookmakers[0];
     const market = bookmaker?.markets?.find(m => m.key === currentFilter) || bookmaker?.markets[0];
     const outcome = market?.outcomes[0];
 
+    // Create a unique ID using the combination of game ID, filter, and commence time
+    const uniqueId = `${item.id}-${currentFilter}-${item.commence_time}`;
+
     return {
-      id: item.id,
+      id: uniqueId,
       player: `${item.home_team} vs ${item.away_team}`,
       position: item.sport_title,
       team: item.home_team,
@@ -194,6 +197,9 @@ const cleanupOldCache = async () => {
   }
 };
 
+// Add a constant for pagination
+const GAMES_PER_PAGE = 10;
+
 export default function ExploreScreen() {
   const { t } = useTranslation();
   const [selectedSport, setSelectedSport] = useState('americanfootball_nfl');
@@ -210,6 +216,8 @@ export default function ExploreScreen() {
   const [allGames, setAllGames] = useState<Game[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [hasMoreData, setHasMoreData] = useState(true);
+  const [totalItems, setTotalItems] = useState(0);
 
   const FILTERS = useMemo(() => [
     { 
@@ -310,11 +318,34 @@ export default function ExploreScreen() {
     
     try {
       setLoading(true);
+
+      const cacheKey = getCacheKey(selectedSport, selectedFilter);
+      const cachedData = await getFromCache<Game[]>(cacheKey);
       
-      // Check rate limit
+      if (cachedData) {
+        // Always set allGames when we have data, regardless of page
+        setAllGames(cachedData);
+        setTotalItems(cachedData.length);
+
+        const startIndex = (page - 1) * GAMES_PER_PAGE;
+        const endIndex = startIndex + GAMES_PER_PAGE;
+        const paginatedData = cachedData.slice(startIndex, endIndex);
+        
+        if (paginatedData.length === 0) {
+          setHasMoreData(false);
+        } else {
+          setGames(prev => page === 1 ? paginatedData : [...prev, ...paginatedData]);
+          setPage(prev => prev + 1);
+        }
+        
+        if (!isInitialLoadDone) setIsInitialLoadDone(true);
+        return;
+      }
+
+      // Only check rate limit if we need to make an API call
       const canMakeRequest = await checkRateLimit();
       if (!canMakeRequest) {
-        console.log('Rate limit exceeded');
+        setHasMoreData(false);
         Alert.alert(
           t('rateLimit'),
           t('rateLimitMessage'),
@@ -323,74 +354,102 @@ export default function ExploreScreen() {
         return;
       }
 
-      const cacheKey = getCacheKey(selectedSport, selectedFilter);
-      const cachedData = await getFromCache<Game[]>(cacheKey);
-      
-      if (cachedData) {
-        setGames(prev => [...prev, ...cachedData]);
-        setAllGames(prev => [...prev, ...cachedData]);
-        setPage(prev => prev + 1);
-        if (!isInitialLoadDone) setIsInitialLoadDone(true);
-        return;
-      }
+      const markets = selectedFilter === 'outrights' 
+        ? 'outrights' 
+        : selectedFilter === 'h2h' 
+          ? 'h2h'
+          : selectedFilter === 'spreads'
+            ? 'spreads'
+            : selectedFilter === 'totals'
+              ? 'totals'
+              : 'h2h,spreads,totals';
 
       const response = await axios.get(`${API_BASE_URL}/${selectedSport}/odds`, {
         params: {
           apiKey: API_KEY,
           regions: 'us',
-          markets: selectedFilter === 'outrights' ? 'outrights' : 'h2h,spreads,totals',
+          markets: markets,
           oddsFormat: 'decimal',
           dateFormat: 'iso',
         }
       });
 
       if (!response.data || response.data.length === 0) {
-        console.log('No games available');
+        setHasMoreData(false);
+        setAllGames([]);
+        setGames([]);
         return;
       }
 
       const transformedGames = transformOddsData(response.data, selectedFilter);
+      
+      if (transformedGames.length === 0) {
+        setHasMoreData(false);
+        setAllGames([]);
+        setGames([]);
+        return;
+      }
+
       await saveToCache(cacheKey, transformedGames);
 
-      setGames(prev => [...prev, ...transformedGames]);
-      setAllGames(prev => [...prev, ...transformedGames]);
-      setPage(prev => prev + 1);
+      // Always set allGames when we have new data
+      setAllGames(transformedGames);
+      setTotalItems(transformedGames.length);
+
+      const startIndex = (page - 1) * GAMES_PER_PAGE;
+      const endIndex = startIndex + GAMES_PER_PAGE;
+      const paginatedData = transformedGames.slice(startIndex, endIndex);
+
+      if (paginatedData.length === 0) {
+        setHasMoreData(false);
+      } else {
+        setGames(prev => page === 1 ? paginatedData : [...prev, ...paginatedData]);
+        setPage(prev => prev + 1);
+      }
+
       if (!isInitialLoadDone) setIsInitialLoadDone(true);
 
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        if (status === 429) {
-          Alert.alert(t('apiLimit'), t('apiLimitMessage'));
-        } else {
-          Alert.alert(t('error'), t('errorLoadingGames'));
-        }
-      }
       console.error('Error loading games:', error);
+      setHasMoreData(false);
+      setAllGames([]);
+      setGames([]);
+      Alert.alert(
+        t('error'),
+        t('errorLoadingGames'),
+        [{ text: t('ok') }]
+      );
     } finally {
       setLoading(false);
     }
-  }, [page, loading, loadedGameIds, selectedSport, selectedFilter, isInitialLoadDone, refreshing, t]);
+  }, [loading, selectedSport, selectedFilter, page, refreshing, isInitialLoadDone, t]);
 
   useEffect(() => {
-    setGames([]);
-    setAllGames([]);
-    setPage(1);
-    setLoadedGameIds(new Set());
-  }, [selectedSport]);
+    const loadInitialData = async () => {
+      // Reset states
+      setGames([]);
+      setAllGames([]);
+      setPage(1);
+      setHasMoreData(true);
+      setTotalItems(0);
+      setLoadedGameIds(new Set());
+      
+      // Load new data
+      await loadGames();
+    };
 
-  // Load initial games when component mounts
-  useEffect(() => {
-    loadGames();
-  }, []); // Empty dependency array for initial load only
+    loadInitialData();
+  }, [selectedSport, selectedFilter]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setGames([]); // Clear existing games
-    setAllGames([]); // Clear all games
-    setPage(1); // Reset page
-    setLoadedGameIds(new Set()); // Clear loaded IDs
-    await loadGames(); // Load new games
+    setGames([]);
+    setAllGames([]);
+    setPage(1);
+    setHasMoreData(true); // Reset hasMoreData
+    setTotalItems(0); // Reset total items
+    setLoadedGameIds(new Set());
+    await loadGames();
     setRefreshing(false);
   }, [loadGames]);
 
@@ -522,7 +581,7 @@ export default function ExploreScreen() {
               selectedSport === sport.id && styles.sportTabSelected,
               { backgroundColor: selectedSport === sport.id ? sport.color : '#000010' }
             ]}
-            onPress={() => setSelectedSport(sport.id)}
+            onPress={() => handleSportChange(sport.id)}
           >
             <MaterialCommunityIcons name={sport.icon} size={24} color="white" />
             <ThemedText style={styles.sportText}>{sport.name}</ThemedText>
@@ -542,7 +601,7 @@ export default function ExploreScreen() {
               styles.filterTab,
               selectedFilter === filter.id && styles.filterTabSelected,
             ]}
-            onPress={() => setSelectedFilter(filter.id)}
+            onPress={() => handleFilterChange(filter.id)}
           >
             <ThemedText style={[
               styles.filterText,
@@ -573,6 +632,14 @@ export default function ExploreScreen() {
     cleanupOldCache();
   }, []);
 
+  const handleFilterChange = useCallback((newFilter: string) => {
+    setSelectedFilter(newFilter);
+  }, []);
+
+  const handleSportChange = useCallback((newSport: string) => {
+    setSelectedSport(newSport);
+  }, []);
+
   return (
     <ThemedView style={styles.container}>
       <ListHeader
@@ -585,17 +652,26 @@ export default function ExploreScreen() {
       />
 
       <FlatList
-        key="two-column-grid"
+        key={`${selectedSport}-${selectedFilter}`}
         data={filteredGames}
         renderItem={renderGameCard}
-        keyExtractor={item => `game-${item.id}`}
+        keyExtractor={item => item.id}
         onEndReached={() => {
-          if (!loading && !refreshing && !searchText) {
-            loadGames();
+          if (!loading && !refreshing && !searchText && hasMoreData && games.length > 0) {
+            const currentlyLoadedItems = games.length;
+            if (currentlyLoadedItems < totalItems) {
+              loadGames();
+            }
           }
         }}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={renderFooter}
+        onEndReachedThreshold={0.2}
+        ListFooterComponent={() => 
+          loading ? (
+            <ThemedView style={styles.loadingFooter}>
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            </ThemedView>
+          ) : null
+        }
         contentContainerStyle={styles.gamesList}
         numColumns={2}
         columnWrapperStyle={styles.row}
@@ -606,7 +682,9 @@ export default function ExploreScreen() {
                 ? t('noResults')
                 : loading 
                   ? t('loading') 
-                  : t('noGames')}
+                  : !hasMoreData && games.length === 0
+                    ? t('noGamesAvailable')
+                    : t('noGames')}
             </ThemedText>
           </ThemedView>
         )}

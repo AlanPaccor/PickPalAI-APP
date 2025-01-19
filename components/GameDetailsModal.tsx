@@ -22,12 +22,22 @@ type IconName = React.ComponentProps<typeof MCIType>['name'];
 
 const getSportIcon = (sportKey: string): IconName => {
   const iconMap: Record<string, IconName> = {
-    'basketball': 'basketball',
-    'americanfootball': 'football',
-    'baseball': 'baseball-bat',
-    'icehockey': 'hockey-puck',
-    'soccer': 'soccer',
-    'tennis': 'tennis',
+    'basketball_nba': 'basketball',
+    'basketball_ncaab': 'basketball',
+    'americanfootball_nfl': 'football',
+    'americanfootball_ncaaf': 'football',
+    'baseball_mlb': 'baseball-bat',
+    'icehockey_nhl': 'hockey-puck',
+    'soccer_epl': 'soccer',
+    'soccer_uefa_champions_league': 'soccer',
+    'soccer_uefa_europa_league': 'soccer',
+    'soccer_spain_la_liga': 'soccer',
+    'soccer_italy_serie_a': 'soccer',
+    'soccer_germany_bundesliga': 'soccer',
+    'soccer_france_ligue_one': 'soccer',
+    'mma_mixed_martial_arts': 'karate',
+    'boxing_boxing': 'boxing-glove',
+    'cricket_ipl': 'cricket',
   };
   
   return iconMap[sportKey] || 'help-circle';
@@ -441,10 +451,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   assistantButton: {
-    backgroundColor: '#000040',
+    backgroundColor: '#000010',
+    borderWidth: 1,
+    borderColor: '#1E90FF',
   },
   analyticsButton: {
-    backgroundColor: '#004000',
+    backgroundColor: '#000010',
+    borderWidth: 1,
+    borderColor: 'purple',
   },
   buttonText: {
     color: '#FFFFFF',

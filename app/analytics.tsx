@@ -208,6 +208,7 @@ const AnalyticsScreen: React.FC = () => {
     },
     chart: {
       borderRadius: 16,
+      backgroundColor: '#000010',
     },
     insightsContainer: {
       padding: 16,
@@ -226,10 +227,11 @@ const AnalyticsScreen: React.FC = () => {
       fontWeight: '800',
       marginBottom: 12,
       color: '#1E90FF',
+      backgroundColor: '#000010',
     },
     insightValueContainer: {
       marginBottom: 12,
-      backgroundColor: '#FFFFFF08',
+      backgroundColor: '#000010',
       padding: 8,
       borderRadius: 8,
     },
@@ -243,7 +245,7 @@ const AnalyticsScreen: React.FC = () => {
     confidenceBar: {
       height: 8,
       borderRadius: 4,
-      backgroundColor: '#FFFFFF15',
+      backgroundColor: '#000010',
     },
     insightExplanation: {
       fontSize: 14,
@@ -254,7 +256,7 @@ const AnalyticsScreen: React.FC = () => {
       padding: 20,
       alignItems: 'center',
       borderBottomWidth: 1,
-      borderBottomColor: '#FFFFFF20',
+      borderBottomColor: '#000010',
       backgroundColor: '#000010',
       margin: 16,
       borderRadius: 16,
@@ -265,15 +267,18 @@ const AnalyticsScreen: React.FC = () => {
       color: '#1E90FF',
       marginBottom: 8,
       fontWeight: '800',
+      backgroundColor: '#000010',
     },
     overallPercentage: {
       fontSize: 48,
       fontWeight: 'bold',
+      backgroundColor: '#000010',
     },
     winProbability: {
       fontSize: 14,
       color: '#1E90FF',
       marginTop: 4,
+      backgroundColor: '#000010',
     },
     backButton: {
       position: 'absolute',
@@ -286,6 +291,7 @@ const AnalyticsScreen: React.FC = () => {
     headerTextContainer: {
       flex: 1,
       alignItems: 'center',
+      backgroundColor: '#000010',
     },
     loadingContent: {
       alignItems: 'center',
